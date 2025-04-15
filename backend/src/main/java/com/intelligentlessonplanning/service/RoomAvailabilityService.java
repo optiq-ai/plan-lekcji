@@ -12,6 +12,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -52,8 +53,8 @@ public class RoomAvailabilityService {
                 .collect(Collectors.toList());
     }
 
-    public List<RoomAvailabilityDto> getRoomAvailabilitiesByDayOfWeek(Integer dayOfWeek) {
-        return roomAvailabilityRepository.findByDayOfWeek(dayOfWeek).stream()
+    public List<RoomAvailabilityDto> getRoomAvailabilitiesByDayOfWeek(DayOfWeek dayOfWeek) {
+        return roomAvailabilityRepository.findByDayOfWeek(dayOfWeek.getValue()).stream()
                 .map(roomAvailability -> modelMapper.map(roomAvailability, RoomAvailabilityDto.class))
                 .collect(Collectors.toList());
     }

@@ -8,6 +8,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,7 +62,7 @@ public class LessonService {
     }
 
     public List<LessonDto> getLessonsByClass(Long classId) {
-        return lessonRepository.findByClassId(classId).stream()
+        return lessonRepository.findByClassEntityId(classId).stream()
                 .map(lesson -> modelMapper.map(lesson, LessonDto.class))
                 .collect(Collectors.toList());
     }
@@ -74,6 +75,18 @@ public class LessonService {
 
     public List<LessonDto> getLessonsByRoom(Long roomId) {
         return lessonRepository.findByRoomId(roomId).stream()
+                .map(lesson -> modelMapper.map(lesson, LessonDto.class))
+                .collect(Collectors.toList());
+    }
+    
+    public List<LessonDto> getLessonsBySubject(Long subjectId) {
+        return lessonRepository.findBySubjectId(subjectId).stream()
+                .map(lesson -> modelMapper.map(lesson, LessonDto.class))
+                .collect(Collectors.toList());
+    }
+    
+    public List<LessonDto> getLessonsByDayOfWeek(DayOfWeek dayOfWeek) {
+        return lessonRepository.findByDayOfWeekAndTimeSlotId(dayOfWeek.getValue(), null).stream()
                 .map(lesson -> modelMapper.map(lesson, LessonDto.class))
                 .collect(Collectors.toList());
     }
@@ -97,7 +110,7 @@ public class LessonService {
         
         // Set Class
         if (lessonDto.getClassEntity() != null && lessonDto.getClassEntity().getId() != null) {
-            Class classEntity = classRepository.findById(lessonDto.getClassEntity().getId())
+            com.intelligentlessonplanning.model.Class classEntity = classRepository.findById(lessonDto.getClassEntity().getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + lessonDto.getClassEntity().getId()));
             lesson.setClassEntity(classEntity);
         }
@@ -149,7 +162,7 @@ public class LessonService {
         
         // Update Class
         if (lessonDto.getClassEntity() != null && lessonDto.getClassEntity().getId() != null) {
-            Class classEntity = classRepository.findById(lessonDto.getClassEntity().getId())
+            com.intelligentlessonplanning.model.Class classEntity = classRepository.findById(lessonDto.getClassEntity().getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + lessonDto.getClassEntity().getId()));
             existingLesson.setClassEntity(classEntity);
         }

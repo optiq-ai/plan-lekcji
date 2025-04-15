@@ -13,4 +13,5 @@ public interface RoomAvailabilityRepository extends JpaRepository<RoomAvailabili
     List<RoomAvailability> findByTimeSlotId(Long timeSlotId);
     List<RoomAvailability> findByRoomIdAndDayOfWeek(Long roomId, Integer dayOfWeek);
     List<RoomAvailability> findByRoomIdAndIsAvailable(Long roomId, Boolean isAvailable);
+    List<RoomAvailability> findByDayOfWeekAndTimeSlotIdAndIsAvailableTrue(Integer dayOfWeek, Long timeSlotId);
 }

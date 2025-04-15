@@ -46,6 +46,10 @@ public class SchoolService {
                 .map(school -> modelMapper.map(school, SchoolDto.class))
                 .collect(Collectors.toList());
     }
+    
+    public List<SchoolDto> getSchoolsByType(Long schoolTypeId) {
+        return getSchoolsBySchoolType(schoolTypeId);
+    }
 
     public SchoolDto createSchool(SchoolDto schoolDto) {
         School school = modelMapper.map(schoolDto, School.class);

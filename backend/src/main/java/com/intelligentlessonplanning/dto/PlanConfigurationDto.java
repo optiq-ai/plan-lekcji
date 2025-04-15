@@ -12,4 +12,5 @@ public class PlanConfigurationDto {
     private LessonPlanDto lessonPlan;
     private String configKey;
     private String configValue;
+    private String description;
 }
