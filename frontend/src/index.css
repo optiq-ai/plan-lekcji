@@ -1,0 +1,166 @@
+body {
+  margin: 0;
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f7fa;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* Klasy pomocnicze */
+.full-height {
+  height: 100%;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Animacje */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+/* Stylizacja scrollbara */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c5c5c5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Stylizacja dla elementów kosmiczno-robotycznych */
+.space-gradient-bg {
+  background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+  color: white;
+}
+
+.robot-panel {
+  border: 1px solid rgba(25, 118, 210, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  background-color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.robot-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #1976d2 0%, #3f51b5 100%);
+}
+
+.tech-border {
+  border: 1px solid rgba(25, 118, 210, 0.2);
+  border-radius: 8px;
+  position: relative;
+}
+
+.tech-border::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: linear-gradient(90deg, #1976d2, #3f51b5) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+}
+
+/* Stylizacja dla widgetów */
+.widget {
+  border-radius: 12px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  background-color: white;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.widget:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.1);
+}
+
+.widget-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  color: #263238;
+  display: flex;
+  align-items: center;
+}
+
+.widget-title .icon {
+  margin-right: 8px;
+  color: #1976d2;
+}
+
+/* Stylizacja dla planu lekcji */
+.timetable-cell {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  min-height: 80px;
+  background-color: white;
+  transition: background-color 0.3s ease;
+}
+
+.timetable-cell:hover {
+  background-color: rgba(25, 118, 210, 0.05);
+}
+
+.timetable-cell.occupied {
+  background-color: rgba(25, 118, 210, 0.1);
+}
+
+.timetable-header {
+  background-color: #1976d2;
+  color: white;
+  padding: 8px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.timetable-time {
+  background-color: #f5f7fa;
+  padding: 8px;
+  text-align: center;
+  font-weight: 500;
+  color: #546e7a;
+}
