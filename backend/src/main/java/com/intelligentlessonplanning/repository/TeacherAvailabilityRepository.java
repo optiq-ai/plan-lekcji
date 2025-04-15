@@ -13,4 +13,5 @@ public interface TeacherAvailabilityRepository extends JpaRepository<TeacherAvai
     List<TeacherAvailability> findByTimeSlotId(Long timeSlotId);
     List<TeacherAvailability> findByTeacherIdAndDayOfWeek(Long teacherId, Integer dayOfWeek);
     List<TeacherAvailability> findByTeacherIdAndIsAvailable(Long teacherId, Boolean isAvailable);
+    List<TeacherAvailability> findByDayOfWeekAndTimeSlotIdAndIsAvailableTrue(Integer dayOfWeek, Long timeSlotId);
 }

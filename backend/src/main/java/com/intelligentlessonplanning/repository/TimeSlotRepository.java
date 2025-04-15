@@ -13,4 +13,5 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
     List<TimeSlot> findByStartTimeGreaterThanEqual(LocalTime startTime);
     List<TimeSlot> findByEndTimeLessThanEqual(LocalTime endTime);
     List<TimeSlot> findByOrderBySlotNumberAsc();
+    List<TimeSlot> findByStartTimeGreaterThanEqualAndEndTimeLessThanEqual(LocalTime startTime, LocalTime endTime);
 }

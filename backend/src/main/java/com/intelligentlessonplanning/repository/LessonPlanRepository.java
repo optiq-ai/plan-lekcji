@@ -14,4 +14,6 @@ public interface LessonPlanRepository extends JpaRepository<LessonPlan, Long> {
     List<LessonPlan> findByStartDateGreaterThanEqual(LocalDate date);
     List<LessonPlan> findByEndDateLessThanEqual(LocalDate date);
     List<LessonPlan> findByPlanStyle(String planStyle);
+    List<LessonPlan> findByNameContainingIgnoreCase(String name);
+    List<LessonPlan> findByStartDateGreaterThanEqualAndEndDateLessThanEqual(LocalDate startDate, LocalDate endDate);
 }

@@ -15,4 +15,5 @@ public class TeacherDto {
     private String phone;
     private String employmentType;
     private Integer hoursPerWeek;
+    private SchoolDto school;
 }

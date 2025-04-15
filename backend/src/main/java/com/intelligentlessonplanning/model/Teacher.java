@@ -34,4 +34,8 @@ public class Teacher extends BaseEntity {
     
     @Column(name = "hours_per_week")
     private Integer hoursPerWeek;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
 }

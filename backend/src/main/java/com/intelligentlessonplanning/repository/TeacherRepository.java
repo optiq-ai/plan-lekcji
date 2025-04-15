@@ -12,4 +12,7 @@ public interface TeacherRepository extends JpaRepository<Teacher, Long> {
     Optional<Teacher> findByEmail(String email);
     List<Teacher> findByLastNameContainingIgnoreCase(String lastName);
     List<Teacher> findByEmploymentType(String employmentType);
+    List<Teacher> findBySchoolId(Long schoolId);
+    List<Teacher> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+            String firstName, String lastName, String email);
 }
