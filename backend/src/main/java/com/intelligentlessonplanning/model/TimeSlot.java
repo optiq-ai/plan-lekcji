@@ -27,4 +27,11 @@ public class TimeSlot extends BaseEntity {
     
     @Column(name = "slot_number")
     private Integer slotNumber;
+    
+    @Column(name = "day_of_week")
+    private Integer dayOfWeek;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
 }

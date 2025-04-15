@@ -40,6 +40,12 @@ public class SubjectService {
                 .map(subject -> modelMapper.map(subject, SubjectDto.class))
                 .collect(Collectors.toList());
     }
+    
+    public List<SubjectDto> getSubjectsByName(String name) {
+        return subjectRepository.findByNameContainingIgnoreCase(name).stream()
+                .map(subject -> modelMapper.map(subject, SubjectDto.class))
+                .collect(Collectors.toList());
+    }
 
     public SubjectDto createSubject(SubjectDto subjectDto) {
         Subject subject = modelMapper.map(subjectDto, Subject.class);

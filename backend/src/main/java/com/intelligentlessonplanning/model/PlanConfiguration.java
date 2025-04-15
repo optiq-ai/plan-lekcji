@@ -26,4 +26,7 @@ public class PlanConfiguration extends BaseEntity {
     @NotBlank
     @Column(name = "config_value", nullable = false)
     private String configValue;
+    
+    @Column(name = "description")
+    private String description;
 }

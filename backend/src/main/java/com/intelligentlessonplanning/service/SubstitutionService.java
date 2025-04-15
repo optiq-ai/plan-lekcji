@@ -69,6 +69,10 @@ public class SubstitutionService {
                 .map(substitution -> modelMapper.map(substitution, SubstitutionDto.class))
                 .collect(Collectors.toList());
     }
+    
+    public List<SubstitutionDto> getSubstitutionsBySubstituteTeacher(Long teacherId) {
+        return getSubstitutionsByTeacher(teacherId);
+    }
 
     public SubstitutionDto createSubstitution(SubstitutionDto substitutionDto) {
         Substitution substitution = new Substitution();

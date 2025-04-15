@@ -2,7 +2,9 @@ package com.intelligentlessonplanning.service;
 
 import com.intelligentlessonplanning.dto.TeacherDto;
 import com.intelligentlessonplanning.exception.ResourceNotFoundException;
+import com.intelligentlessonplanning.model.School;
 import com.intelligentlessonplanning.model.Teacher;
+import com.intelligentlessonplanning.repository.SchoolRepository;
 import com.intelligentlessonplanning.repository.TeacherRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,11 +17,15 @@ import java.util.stream.Collectors;
 public class TeacherService {
 
     private final TeacherRepository teacherRepository;
+    private final SchoolRepository schoolRepository;
     private final ModelMapper modelMapper;
 
     @Autowired
-    public TeacherService(TeacherRepository teacherRepository, ModelMapper modelMapper) {
+    public TeacherService(TeacherRepository teacherRepository, 
+                         SchoolRepository schoolRepository,
+                         ModelMapper modelMapper) {
         this.teacherRepository = teacherRepository;
+        this.schoolRepository = schoolRepository;
         this.modelMapper = modelMapper;
     }
 
@@ -52,9 +58,30 @@ public class TeacherService {
                 .map(teacher -> modelMapper.map(teacher, TeacherDto.class))
                 .collect(Collectors.toList());
     }
+    
+    public List<TeacherDto> getTeachersBySchool(Long schoolId) {
+        return teacherRepository.findBySchoolId(schoolId).stream()
+                .map(teacher -> modelMapper.map(teacher, TeacherDto.class))
+                .collect(Collectors.toList());
+    }
+    
+    public List<TeacherDto> searchTeachers(String searchTerm) {
+        return teacherRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+                searchTerm, searchTerm, searchTerm).stream()
+                .map(teacher -> modelMapper.map(teacher, TeacherDto.class))
+                .collect(Collectors.toList());
+    }
 
     public TeacherDto createTeacher(TeacherDto teacherDto) {
         Teacher teacher = modelMapper.map(teacherDto, Teacher.class);
+        
+        // Set School if provided
+        if (teacherDto.getSchool() != null && teacherDto.getSchool().getId() != null) {
+            School school = schoolRepository.findById(teacherDto.getSchool().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("School not found with id: " + teacherDto.getSchool().getId()));
+            teacher.setSchool(school);
+        }
+        
         Teacher savedTeacher = teacherRepository.save(teacher);
         return modelMapper.map(savedTeacher, TeacherDto.class);
     }
@@ -69,6 +96,13 @@ public class TeacherService {
         existingTeacher.setPhone(teacherDto.getPhone());
         existingTeacher.setEmploymentType(teacherDto.getEmploymentType());
         existingTeacher.setHoursPerWeek(teacherDto.getHoursPerWeek());
+        
+        // Update School if provided
+        if (teacherDto.getSchool() != null && teacherDto.getSchool().getId() != null) {
+            School school = schoolRepository.findById(teacherDto.getSchool().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("School not found with id: " + teacherDto.getSchool().getId()));
+            existingTeacher.setSchool(school);
+        }
         
         Teacher updatedTeacher = teacherRepository.save(existingTeacher);
         return modelMapper.map(updatedTeacher, TeacherDto.class);

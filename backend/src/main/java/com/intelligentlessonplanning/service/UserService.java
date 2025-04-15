@@ -50,6 +50,12 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
         return modelMapper.map(user, UserDto.class);
     }
+    
+    public UserDto getUserByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        return modelMapper.map(user, UserDto.class);
+    }
 
     public List<UserDto> getUsersByRole(String role) {
         return userRepository.findByRole(role).stream()

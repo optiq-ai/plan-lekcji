@@ -57,6 +57,14 @@ public class TeacherSubjectService {
                 .map(teacherSubject -> modelMapper.map(teacherSubject, TeacherSubjectDto.class))
                 .collect(Collectors.toList());
     }
+    
+    public List<TeacherSubjectDto> getTeacherSubjectsByTeacher(Long teacherId) {
+        return getTeacherSubjectsByTeacherId(teacherId);
+    }
+    
+    public List<TeacherSubjectDto> getTeacherSubjectsBySubject(Long subjectId) {
+        return getTeacherSubjectsBySubjectId(subjectId);
+    }
 
     public TeacherSubjectDto createTeacherSubject(TeacherSubjectDto teacherSubjectDto) {
         TeacherSubject teacherSubject = new TeacherSubject();

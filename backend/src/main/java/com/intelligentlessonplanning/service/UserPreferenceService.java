@@ -52,6 +52,10 @@ public class UserPreferenceService {
                 .map(userPreference -> modelMapper.map(userPreference, UserPreferenceDto.class))
                 .collect(Collectors.toList());
     }
+    
+    public List<UserPreferenceDto> getUserPreferencesByKey(String preferenceKey) {
+        return getUserPreferencesByPreferenceKey(preferenceKey);
+    }
 
     public UserPreferenceDto createUserPreference(UserPreferenceDto userPreferenceDto) {
         UserPreference userPreference = new UserPreference();

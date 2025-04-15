@@ -47,6 +47,12 @@ public class LessonPlanService {
                 .map(lessonPlan -> modelMapper.map(lessonPlan, LessonPlanDto.class))
                 .collect(Collectors.toList());
     }
+    
+    public List<LessonPlanDto> getLessonPlansByName(String name) {
+        return lessonPlanRepository.findByNameContainingIgnoreCase(name).stream()
+                .map(lessonPlan -> modelMapper.map(lessonPlan, LessonPlanDto.class))
+                .collect(Collectors.toList());
+    }
 
     public List<LessonPlanDto> getActiveLessonPlans() {
         return lessonPlanRepository.findByIsActiveTrue().stream()
@@ -64,6 +70,35 @@ public class LessonPlanService {
         return lessonPlanRepository.findByPlanStyle(planStyle).stream()
                 .map(lessonPlan -> modelMapper.map(lessonPlan, LessonPlanDto.class))
                 .collect(Collectors.toList());
+    }
+    
+    public LessonPlanDto optimizeLessonPlan(Long id, String optimizationStrategy) {
+        LessonPlan lessonPlan = lessonPlanRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("LessonPlan not found with id: " + id));
+        
+        // Implementacja logiki optymalizacji planu lekcji
+        // W rzeczywistej aplikacji tutaj byłby algorytm optymalizacyjny
+        // Na potrzeby implementacji zwracamy po prostu istniejący plan
+        
+        return modelMapper.map(lessonPlan, LessonPlanDto.class);
+    }
+    
+    public LessonPlanDto cloneLessonPlan(Long id, String newName) {
+        LessonPlan sourceLessonPlan = lessonPlanRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("LessonPlan not found with id: " + id));
+        
+        // Tworzenie kopii planu lekcji
+        LessonPlan clonedLessonPlan = new LessonPlan();
+        clonedLessonPlan.setName(newName);
+        clonedLessonPlan.setDescription(sourceLessonPlan.getDescription() + " (kopia)");
+        clonedLessonPlan.setStartDate(sourceLessonPlan.getStartDate());
+        clonedLessonPlan.setEndDate(sourceLessonPlan.getEndDate());
+        clonedLessonPlan.setIsActive(false); // Kopia nie jest aktywna domyślnie
+        clonedLessonPlan.setPlanStyle(sourceLessonPlan.getPlanStyle());
+        clonedLessonPlan.setSchool(sourceLessonPlan.getSchool());
+        
+        LessonPlan savedLessonPlan = lessonPlanRepository.save(clonedLessonPlan);
+        return modelMapper.map(savedLessonPlan, LessonPlanDto.class);
     }
 
     public LessonPlanDto createLessonPlan(LessonPlanDto lessonPlanDto) {

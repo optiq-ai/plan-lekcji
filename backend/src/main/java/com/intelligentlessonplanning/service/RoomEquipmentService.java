@@ -52,6 +52,14 @@ public class RoomEquipmentService {
                 .map(roomEquipment -> modelMapper.map(roomEquipment, RoomEquipmentDto.class))
                 .collect(Collectors.toList());
     }
+    
+    public List<RoomEquipmentDto> getRoomEquipmentByRoom(Long roomId) {
+        return getRoomEquipmentByRoomId(roomId);
+    }
+    
+    public List<RoomEquipmentDto> getRoomEquipmentByType(String equipmentType) {
+        return getRoomEquipmentByName(equipmentType);
+    }
 
     public RoomEquipmentDto createRoomEquipment(RoomEquipmentDto roomEquipmentDto) {
         RoomEquipment roomEquipment = new RoomEquipment();

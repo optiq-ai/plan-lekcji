@@ -40,7 +40,14 @@ public class User extends BaseEntity {
     @Column(name = "is_active", columnDefinition = "boolean default true")
     private Boolean isActive;
     
+    @Column(name = "active", columnDefinition = "boolean default true")
+    private Boolean active;
+    
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "teacher_id")
     private Teacher teacher;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
 }
