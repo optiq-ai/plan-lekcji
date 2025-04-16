@@ -35,7 +35,9 @@ import HelpIcon from '@mui/icons-material/Help';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import SyncIcon from '@mui/icons-material/Sync';
 import { useNavigate, Routes, Route } from 'react-router-dom';
+import { usePerformance } from '../../context/PerformanceContext';
 
 // Import stron
 import Login from '../../pages/Login';
@@ -43,6 +45,7 @@ import NotFound from '../../pages/NotFound';
 import PlanEditor from '../../pages/PlanEditor';
 import PlanAnalytics from '../../pages/PlanAnalytics';
 import Settings from '../../pages/Settings';
+import Integrations from '../../pages/Integrations';
 
 // Szerokość szuflady nawigacyjnej
 const drawerWidth = 240;
@@ -158,6 +161,7 @@ const AppLayout = () => {
     { text: 'Sale lekcyjne', icon: <MeetingRoomIcon />, path: '/rooms', id: 'sale' },
     { text: 'Asystent AI', icon: <SmartToyIcon />, path: '/ai-assistant', id: 'asystent' },
     { text: 'Statystyki', icon: <BarChartIcon />, path: '/analytics', id: 'statystyki' },
+    { text: 'Integracje', icon: <SyncIcon />, path: '/integrations', id: 'integracje' },
     { text: 'Ustawienia', icon: <SettingsIcon />, path: '/settings', id: 'ustawienia' },
   ];
 
@@ -361,6 +365,7 @@ const AppLayout = () => {
             <Route path="/settings" element={<Settings />} />
             <Route path="/plan-editor" element={<PlanEditor />} />
             <Route path="/analytics" element={<PlanAnalytics />} />
+            <Route path="/integrations" element={<Integrations />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </StyledMainContainer>
