@@ -17,7 +17,8 @@ import {
   CardActions,
   IconButton,
   Tooltip,
-  Alert
+  Alert,
+  Chip
 } from '@mui/material';
 import {
   SmartToy as AIIcon,
@@ -446,7 +447,7 @@ const PlanOptimizationWizard = ({ planId }) => {
             ) : (
               <Box>
                 <Typography paragraph>
-                  Generowanie propozycji optymalizacji...
+                  Asystent AI wygenerował propozycje zmian w planie lekcji.
                 </Typography>
               </Box>
             )}
@@ -455,132 +456,226 @@ const PlanOptimizationWizard = ({ planId }) => {
       case 3:
         return (
           <Box>
-            <Typography paragraph>
-              Asystent AI wygenerował następujące propozycje zmian w planie lekcji:
-            </Typography>
-            
-            <Box sx={{ mb: 3 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Obecna ocena planu:
-                  </Typography>
-                  <Paper 
-                    elevation={1} 
-                    sx={{ 
-                      p: 1, 
-                      textAlign: 'center',
-                      backgroundColor: theme.palette.grey[200]
-                    }}
-                  >
-                    <Typography variant="h4" fontWeight="bold">
-                      {optimizationResults?.score.overall}/100
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Przewidywana ocena po zmianach:
-                  </Typography>
-                  <Paper 
-                    elevation={1} 
-                    sx={{ 
-                      p: 1, 
-                      textAlign: 'center',
-                      backgroundColor: theme.palette.primary.main,
-                      color: theme.palette.primary.contrastText
-                    }}
-                  >
-                    <Typography variant="h4" fontWeight="bold">
-                      {optimizationResults?.predictedScore.overall}/100
-                    </Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
-            </Box>
-            
-            <Typography variant="subtitle1" gutterBottom>
-              Proponowane zmiany:
-            </Typography>
-            
-            <Grid container spacing={2}>
-              {optimizationResults?.proposals.map((proposal) => (
-                <Grid item xs={12} key={proposal.id}>
-                  <Card variant="outlined">
+            {optimizationInProgress ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 3 }}>
+                <CircularProgress sx={{ mb: 2 }} />
+                <Typography>Zastosowywanie wybranych zmian...</Typography>
+              </Box>
+            ) : (
+              <Box>
+                <Typography paragraph>
+                  Przejrzyj proponowane zmiany i wybierz te, które chcesz zastosować:
+                </Typography>
+                
+                <Box sx={{ mb: 3 }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <Paper sx={{ p: 2, height: '100%' }}>
+                        <Typography variant="h6" gutterBottom>
+                          Obecna ocena
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <Typography variant="h3" color="primary" sx={{ mr: 1 }}>
+                            {optimizationResults?.score.overall}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            / 100
+                          </Typography>
+                        </Box>
+                        <Divider sx={{ mb: 2 }} />
+                        <Grid container spacing={1}>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                              Komfort uczniów:
+                            </Typography>
+                            <Typography variant="body1">
+                              {optimizationResults?.score.studentComfort}/100
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                              Komfort nauczycieli:
+                            </Typography>
+                            <Typography variant="body1">
+                              {optimizationResults?.score.teacherComfort}/100
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                              Wykorzystanie sal:
+                            </Typography>
+                            <Typography variant="body1">
+                              {optimizationResults?.score.roomUtilization}/100
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                              Rozkład przedmiotów:
+                            </Typography>
+                            <Typography variant="body1">
+                              {optimizationResults?.score.subjectDistribution}/100
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Paper sx={{ p: 2, height: '100%', bgcolor: 'success.light' }}>
+                        <Typography variant="h6" gutterBottom>
+                          Przewidywana ocena
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <Typography variant="h3" color="success.dark" sx={{ mr: 1 }}>
+                            {optimizationResults?.predictedScore.overall}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            / 100
+                          </Typography>
+                          <Typography variant="h6" color="success.dark" sx={{ ml: 2 }}>
+                            +{optimizationResults?.predictedScore.overall - optimizationResults?.score.overall}
+                          </Typography>
+                        </Box>
+                        <Divider sx={{ mb: 2 }} />
+                        <Grid container spacing={1}>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                              Komfort uczniów:
+                            </Typography>
+                            <Typography variant="body1">
+                              {optimizationResults?.predictedScore.studentComfort}/100
+                              <Typography component="span" color="success.dark" sx={{ ml: 1 }}>
+                                (+{optimizationResults?.predictedScore.studentComfort - optimizationResults?.score.studentComfort})
+                              </Typography>
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                              Komfort nauczycieli:
+                            </Typography>
+                            <Typography variant="body1">
+                              {optimizationResults?.predictedScore.teacherComfort}/100
+                              <Typography component="span" color="success.dark" sx={{ ml: 1 }}>
+                                (+{optimizationResults?.predictedScore.teacherComfort - optimizationResults?.score.teacherComfort})
+                              </Typography>
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                              Wykorzystanie sal:
+                            </Typography>
+                            <Typography variant="body1">
+                              {optimizationResults?.predictedScore.roomUtilization}/100
+                              <Typography component="span" color="success.dark" sx={{ ml: 1 }}>
+                                (+{optimizationResults?.predictedScore.roomUtilization - optimizationResults?.score.roomUtilization})
+                              </Typography>
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                              Rozkład przedmiotów:
+                            </Typography>
+                            <Typography variant="body1">
+                              {optimizationResults?.predictedScore.subjectDistribution}/100
+                              <Typography component="span" color="success.dark" sx={{ ml: 1 }}>
+                                (+{optimizationResults?.predictedScore.subjectDistribution - optimizationResults?.score.subjectDistribution})
+                              </Typography>
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                </Box>
+                
+                <Typography variant="h6" gutterBottom>
+                  Proponowane zmiany:
+                </Typography>
+                
+                {optimizationResults?.proposals.map((proposal) => (
+                  <Card key={proposal.id} sx={{ mb: 2 }}>
                     <CardContent>
-                      <Typography variant="subtitle2" gutterBottom>
-                        {proposal.description}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                        {proposal.impact.studentComfort !== 0 && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Typography variant="body1">
+                          {proposal.description}
+                        </Typography>
+                        <Box>
                           <Chip 
-                            size="small" 
-                            label={`Komfort uczniów ${proposal.impact.studentComfort > 0 ? '+' : ''}${proposal.impact.studentComfort}`} 
-                            color={proposal.impact.studentComfort > 0 ? "success" : "error"}
+                            label={`Uczniowie: ${proposal.impact.studentComfort > 0 ? '+' : ''}${proposal.impact.studentComfort}`} 
+                            color={proposal.impact.studentComfort > 0 ? "success" : proposal.impact.studentComfort < 0 ? "error" : "default"}
+                            size="small"
+                            sx={{ mr: 0.5, mb: 0.5 }}
                           />
-                        )}
-                        {proposal.impact.teacherComfort !== 0 && (
                           <Chip 
-                            size="small" 
-                            label={`Komfort nauczycieli ${proposal.impact.teacherComfort > 0 ? '+' : ''}${proposal.impact.teacherComfort}`} 
-                            color={proposal.impact.teacherComfort > 0 ? "success" : "error"}
+                            label={`Nauczyciele: ${proposal.impact.teacherComfort > 0 ? '+' : ''}${proposal.impact.teacherComfort}`} 
+                            color={proposal.impact.teacherComfort > 0 ? "success" : proposal.impact.teacherComfort < 0 ? "error" : "default"}
+                            size="small"
+                            sx={{ mr: 0.5, mb: 0.5 }}
                           />
-                        )}
-                        {proposal.impact.roomUtilization !== 0 && (
                           <Chip 
-                            size="small" 
-                            label={`Wykorzystanie sal ${proposal.impact.roomUtilization > 0 ? '+' : ''}${proposal.impact.roomUtilization}`} 
-                            color={proposal.impact.roomUtilization > 0 ? "success" : "error"}
+                            label={`Sale: ${proposal.impact.roomUtilization > 0 ? '+' : ''}${proposal.impact.roomUtilization}`} 
+                            color={proposal.impact.roomUtilization > 0 ? "success" : proposal.impact.roomUtilization < 0 ? "error" : "default"}
+                            size="small"
+                            sx={{ mr: 0.5, mb: 0.5 }}
                           />
-                        )}
-                        {proposal.impact.subjectDistribution !== 0 && (
                           <Chip 
-                            size="small" 
-                            label={`Rozkład przedmiotów ${proposal.impact.subjectDistribution > 0 ? '+' : ''}${proposal.impact.subjectDistribution}`} 
-                            color={proposal.impact.subjectDistribution > 0 ? "success" : "error"}
+                            label={`Przedmioty: ${proposal.impact.subjectDistribution > 0 ? '+' : ''}${proposal.impact.subjectDistribution}`} 
+                            color={proposal.impact.subjectDistribution > 0 ? "success" : proposal.impact.subjectDistribution < 0 ? "error" : "default"}
+                            size="small"
+                            sx={{ mb: 0.5 }}
                           />
-                        )}
+                        </Box>
                       </Box>
                     </CardContent>
                     <CardActions>
-                      <Tooltip title="Zatwierdź zmianę">
-                        <IconButton color="success">
-                          <CheckIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Odrzuć zmianę">
-                        <IconButton color="error">
-                          <CloseIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Pokaż szczegóły">
-                        <IconButton>
-                          <CompareIcon />
-                        </IconButton>
-                      </Tooltip>
+                      <Button size="small" startIcon={<CheckIcon />} color="success">
+                        Zastosuj
+                      </Button>
+                      <Button size="small" startIcon={<CloseIcon />} color="error">
+                        Odrzuć
+                      </Button>
+                      <Button size="small" startIcon={<CompareIcon />}>
+                        Porównaj
+                      </Button>
                     </CardActions>
                   </Card>
-                </Grid>
-              ))}
-            </Grid>
-            
-            <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
-              <Button
-                color="inherit"
-                onClick={handleBack}
-                sx={{ mr: 1 }}
-              >
-                Wstecz
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleNext}
-                sx={{ mr: 1 }}
-                startIcon={<SaveIcon />}
-              >
-                Zastosuj wybrane zmiany
-              </Button>
-            </Box>
+                ))}
+                
+                <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
+                  <Button
+                    color="inherit"
+                    onClick={handleBack}
+                    sx={{ mr: 1 }}
+                  >
+                    Wstecz
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleNext}
+                    sx={{ mr: 1 }}
+                  >
+                    Zastosuj wybrane zmiany
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        );
+      case 4:
+        return (
+          <Box sx={{ py: 3, textAlign: 'center' }}>
+            <Typography variant="h5" color="success.main" gutterBottom>
+              Optymalizacja zakończona pomyślnie!
+            </Typography>
+            <Typography paragraph>
+              Wybrane zmiany zostały zastosowane do planu lekcji. Ocena planu wzrosła z {optimizationResults?.score.overall} do {optimizationResults?.predictedScore.overall} punktów.
+            </Typography>
+            <Button
+              variant="outlined"
+              onClick={handleReset}
+              sx={{ mt: 1, mr: 1 }}
+            >
+              Rozpocznij nową optymalizację
+            </Button>
           </Box>
         );
       default:
@@ -588,9 +683,9 @@ const PlanOptimizationWizard = ({ planId }) => {
     }
   };
 
-  if (loading && !optimizationInProgress) {
+  if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
         <CircularProgress />
       </Box>
     );
@@ -598,78 +693,43 @@ const PlanOptimizationWizard = ({ planId }) => {
 
   if (error) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Typography color="error">{error}</Typography>
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">{error}</Alert>
       </Box>
     );
   }
 
   return (
-    <Paper elevation={3} sx={{ p: 2, overflow: 'auto' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <AIIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-          <Typography variant="h6">
-            Kreator optymalizacji planu
-            {planData && ` - ${planData.name}`}
+    <Box sx={{ p: 3 }}>
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <AIIcon color="primary" sx={{ fontSize: 32, mr: 2 }} />
+          <Typography variant="h5">
+            Kreator optymalizacji planu lekcji
           </Typography>
         </Box>
-        {activeStep === 4 && (
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={handleReset}
-          >
-            Nowa optymalizacja
-          </Button>
+        
+        {activeStep < steps.length && (
+          <Stepper activeStep={activeStep} orientation="vertical">
+            {steps.map((step, index) => (
+              <Step key={step.label}>
+                <StepLabel>
+                  {step.label}
+                </StepLabel>
+                <StepContent>
+                  <Typography color="text.secondary" paragraph>
+                    {step.description}
+                  </Typography>
+                  {renderStepContent(index)}
+                </StepContent>
+              </Step>
+            ))}
+          </Stepper>
         )}
-      </Box>
-      
-      <Divider sx={{ mb: 2 }} />
-      
-      {activeStep === 4 ? (
-        <Box sx={{ p: 2, textAlign: 'center' }}>
-          <Typography variant="h5" gutterBottom color="primary">
-            Optymalizacja zakończona pomyślnie!
-          </Typography>
-          <Typography paragraph>
-            Zmiany zostały zastosowane do planu lekcji. Nowa ocena planu wynosi {optimizationResults?.predictedScore.overall}/100.
-          </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 3 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<CompareIcon />}
-            >
-              Porównaj z poprzednią wersją
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={handleReset}
-            >
-              Nowa optymalizacja
-            </Button>
-          </Box>
-        </Box>
-      ) : (
-        <Stepper activeStep={activeStep} orientation="vertical">
-          {steps.map((step, index) => (
-            <Step key={step.label}>
-              <StepLabel>
-                <Typography variant="subtitle1">{step.label}</Typography>
-              </StepLabel>
-              <StepContent>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  {step.description}
-                </Typography>
-                {renderStepContent(index)}
-              </StepContent>
-            </Step>
-          ))}
-        </Stepper>
-      )}
-    </Paper>
+        
+        {activeStep === steps.length && renderStepContent(activeStep)}
+      </Paper>
+    </Box>
   );
 };
 

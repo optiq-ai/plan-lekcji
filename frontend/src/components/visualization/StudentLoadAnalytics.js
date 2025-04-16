@@ -23,7 +23,8 @@ import {
   Tooltip, 
   Legend, 
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
+  Label
 } from 'recharts';
 import LessonService from '../../services/LessonService';
 import ClassService from '../../services/ClassService';
