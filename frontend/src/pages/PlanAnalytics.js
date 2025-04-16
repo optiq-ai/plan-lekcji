@@ -26,6 +26,7 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import InfoIcon from '@mui/icons-material/Info';
 
 // Importy komponentów wizualizacji
 import TeacherLoadHeatmap from '../components/visualization/TeacherLoadHeatmap';
