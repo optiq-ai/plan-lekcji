@@ -1,734 +1,779 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
-  Paper, 
   Typography, 
+  Paper, 
   Grid, 
-  Divider, 
-  useTheme,
-  CircularProgress,
+  Card, 
+  CardContent,
   Button,
   Stepper,
   Step,
   StepLabel,
   StepContent,
-  Card,
-  CardContent,
-  CardActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
+  Divider,
+  CircularProgress,
   IconButton,
-  Tooltip,
-  Alert,
-  Chip
+  Tooltip
 } from '@mui/material';
-import {
-  SmartToy as AIIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
-  Refresh as RefreshIcon,
-  Save as SaveIcon,
-  Compare as CompareIcon
-} from '@mui/icons-material';
-import LessonPlanService from '../../services/LessonPlanService';
+import { useTheme } from '@mui/material/styles';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import TuneIcon from '@mui/icons-material/Tune';
+import SettingsIcon from '@mui/icons-material/Settings';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import WarningIcon from '@mui/icons-material/Warning';
+import InfoIcon from '@mui/icons-material/Info';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import SaveIcon from '@mui/icons-material/Save';
 
-const PlanOptimizationWizard = ({ planId }) => {
+/**
+ * Komponent kreatora optymalizacji planu lekcji
+ * Prowadzi użytkownika przez proces optymalizacji planu z wykorzystaniem AI
+ */
+const PlanOptimizationWizard = () => {
   const theme = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [planData, setPlanData] = useState(null);
   const [activeStep, setActiveStep] = useState(0);
-  const [optimizationResults, setOptimizationResults] = useState(null);
-  const [optimizationInProgress, setOptimizationInProgress] = useState(false);
-  const [error, setError] = useState(null);
-  const [optimizationConfig, setOptimizationConfig] = useState({
-    prioritizeStudentComfort: true,
-    prioritizeTeacherComfort: true,
-    prioritizeRoomUtilization: true,
-    prioritizeSubjectDistribution: true,
-    maxChangesAllowed: 'medium' // 'low', 'medium', 'high'
+  const [loading, setLoading] = useState(false);
+  const [optimizationGoals, setOptimizationGoals] = useState({
+    balanceTeacherLoad: true,
+    maximizeRoomUsage: true,
+    minimizeStudentLoad: true,
+    avoidConflicts: true,
+    considerPreferences: false
   });
+  const [optimizationLevel, setOptimizationLevel] = useState('balanced');
+  const [selectedClasses, setSelectedClasses] = useState(['1A', '2B']);
+  const [selectedTeachers, setSelectedTeachers] = useState([]);
+  const [optimizationResults, setOptimizationResults] = useState(null);
+  const [optimizationScore, setOptimizationScore] = useState(0);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!planId) return;
-      
-      try {
-        setLoading(true);
-        
-        // Pobierz dane planu lekcji
-        const planResponse = await LessonPlanService.getLessonPlanById(planId);
-        setPlanData(planResponse);
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Błąd podczas pobierania danych planu:', err);
-        setError('Wystąpił błąd podczas ładowania danych. Spróbuj ponownie później.');
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [planId]);
-
-  // Kroki kreatora optymalizacji
-  const steps = [
-    {
-      label: 'Analiza planu',
-      description: 'Asystent AI analizuje obecny plan lekcji i identyfikuje obszary do optymalizacji.',
-    },
-    {
-      label: 'Konfiguracja optymalizacji',
-      description: 'Wybierz priorytety i parametry optymalizacji planu lekcji.',
-    },
-    {
-      label: 'Generowanie propozycji',
-      description: 'Asystent AI generuje propozycje zmian w planie lekcji.',
-    },
-    {
-      label: 'Przegląd i zatwierdzenie',
-      description: 'Przejrzyj proponowane zmiany i zatwierdź te, które chcesz zastosować.',
-    },
+  // Symulacja danych klas i nauczycieli
+  const classes = ['1A', '1B', '1C', '2A', '2B', '2C', '3A', '3B', '3C'];
+  const teachers = [
+    { id: 1, name: 'Anna Kowalska', subject: 'Matematyka' },
+    { id: 2, name: 'Jan Nowak', subject: 'Język polski' },
+    { id: 3, name: 'Piotr Wiśniewski', subject: 'Historia' },
+    { id: 4, name: 'Alicja Dąbrowska', subject: 'Geografia' },
+    { id: 5, name: 'Adam Malinowski', subject: 'Fizyka' }
   ];
 
-  // Funkcja do przechodzenia do następnego kroku
+  // Obsługa zmiany kroku
   const handleNext = () => {
-    if (activeStep === 0) {
-      // Symulacja analizy planu
-      setOptimizationInProgress(true);
-      setTimeout(() => {
-        setOptimizationResults({
-          issues: [
-            { id: 1, type: 'teacher_overload', description: 'Nauczyciel Jan Kowalski ma zbyt duże obciążenie w środy (8 lekcji).' },
-            { id: 2, type: 'room_underutilization', description: 'Sala 102 jest wykorzystywana tylko w 30% dostępnego czasu.' },
-            { id: 3, type: 'subject_distribution', description: 'Klasa 3A ma zbyt wiele trudnych przedmiotów w poniedziałki.' },
-            { id: 4, type: 'teacher_conflict', description: 'Nauczyciel Anna Nowak ma nakładające się lekcje w piątki (lekcja 3 i 4).' }
-          ],
-          score: {
-            overall: 68,
-            studentComfort: 72,
-            teacherComfort: 58,
-            roomUtilization: 65,
-            subjectDistribution: 75
-          }
-        });
-        setOptimizationInProgress(false);
-        setActiveStep(1);
-      }, 2000);
-    } else if (activeStep === 1) {
-      // Przejście do generowania propozycji
-      setActiveStep(2);
-      setOptimizationInProgress(true);
-      
-      // Symulacja generowania propozycji
-      setTimeout(() => {
-        setOptimizationResults({
-          ...optimizationResults,
-          proposals: [
-            { 
-              id: 1, 
-              type: 'move_lesson', 
-              description: 'Przenieś lekcję matematyki klasy 3A z poniedziałku (lekcja 5) na wtorek (lekcja 3)',
-              impact: { studentComfort: +8, teacherComfort: +2, roomUtilization: 0, subjectDistribution: +5 }
-            },
-            { 
-              id: 2, 
-              type: 'swap_lessons', 
-              description: 'Zamień lekcje: biologia klasy 2B (środa, lekcja 2) z geografią klasy 2B (piątek, lekcja 4)',
-              impact: { studentComfort: +5, teacherComfort: +10, roomUtilization: 0, subjectDistribution: +3 }
-            },
-            { 
-              id: 3, 
-              type: 'change_room', 
-              description: 'Zmień salę dla lekcji fizyki klasy 1C z sali 205 na salę 102',
-              impact: { studentComfort: 0, teacherComfort: 0, roomUtilization: +15, subjectDistribution: 0 }
-            },
-            { 
-              id: 4, 
-              type: 'reschedule_teacher', 
-              description: 'Zmień przydział nauczyciela dla lekcji angielskiego klasy 4A z Anny Nowak na Tomasza Wiśniewskiego',
-              impact: { studentComfort: -2, teacherComfort: +12, roomUtilization: 0, subjectDistribution: 0 }
-            }
-          ],
-          predictedScore: {
-            overall: 82,
-            studentComfort: 83,
-            teacherComfort: 78,
-            roomUtilization: 80,
-            subjectDistribution: 83
-          }
-        });
-        setOptimizationInProgress(false);
-        setActiveStep(3);
-      }, 3000);
-    } else if (activeStep === 3) {
-      // Symulacja zastosowania zmian
-      setOptimizationInProgress(true);
-      setTimeout(() => {
-        setOptimizationInProgress(false);
-        // Tutaj w rzeczywistej aplikacji byłoby zapisanie zmian do planu
-        setActiveStep(4); // Krok poza stepper - podsumowanie
-      }, 2000);
+    if (activeStep === 2) {
+      runOptimization();
+    } else {
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
     }
   };
 
-  // Funkcja do cofania do poprzedniego kroku
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
-  // Funkcja do resetowania kreatora
   const handleReset = () => {
     setActiveStep(0);
+    setOptimizationGoals({
+      balanceTeacherLoad: true,
+      maximizeRoomUsage: true,
+      minimizeStudentLoad: true,
+      avoidConflicts: true,
+      considerPreferences: false
+    });
+    setOptimizationLevel('balanced');
+    setSelectedClasses(['1A', '2B']);
+    setSelectedTeachers([]);
     setOptimizationResults(null);
+    setOptimizationScore(0);
   };
 
-  // Renderowanie zawartości kroku
-  const renderStepContent = (step) => {
-    switch (step) {
-      case 0:
-        return (
-          <Box>
-            {optimizationInProgress ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 3 }}>
-                <CircularProgress sx={{ mb: 2 }} />
-                <Typography>Analizowanie planu lekcji...</Typography>
-              </Box>
-            ) : (
-              <Box>
-                <Typography paragraph>
-                  Asystent AI przeanalizuje obecny plan lekcji i zidentyfikuje potencjalne obszary do optymalizacji, takie jak:
-                </Typography>
-                <ul>
-                  <li>Nierównomierne obciążenie nauczycieli</li>
-                  <li>Nieoptymalne wykorzystanie sal lekcyjnych</li>
-                  <li>Niekorzystny rozkład przedmiotów dla uczniów</li>
-                  <li>Konflikty w planie lekcji</li>
-                </ul>
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                  sx={{ mt: 1, mr: 1 }}
+  // Obsługa zmiany celów optymalizacji
+  const handleGoalChange = (name) => (event) => {
+    setOptimizationGoals({
+      ...optimizationGoals,
+      [name]: event.target.checked
+    });
+  };
+
+  // Obsługa zmiany poziomu optymalizacji
+  const handleLevelChange = (event) => {
+    setOptimizationLevel(event.target.value);
+  };
+
+  // Obsługa wyboru klas
+  const handleClassToggle = (className) => () => {
+    setSelectedClasses((prev) => {
+      if (prev.includes(className)) {
+        return prev.filter((c) => c !== className);
+      } else {
+        return [...prev, className];
+      }
+    });
+  };
+
+  // Obsługa wyboru nauczycieli
+  const handleTeacherToggle = (teacherId) => () => {
+    setSelectedTeachers((prev) => {
+      if (prev.includes(teacherId)) {
+        return prev.filter((id) => id !== teacherId);
+      } else {
+        return [...prev, teacherId];
+      }
+    });
+  };
+
+  // Symulacja procesu optymalizacji
+  const runOptimization = () => {
+    setLoading(true);
+    
+    // Symulacja opóźnienia procesu optymalizacji
+    setTimeout(() => {
+      // Symulacja wyników optymalizacji
+      const mockResults = {
+        changes: [
+          {
+            type: 'move',
+            description: 'Przeniesienie matematyki z wtorku (8:00) na środę (10:45) dla klasy 1A',
+            impact: 'high',
+            reason: 'Lepsze rozłożenie trudnych przedmiotów w tygodniu'
+          },
+          {
+            type: 'swap',
+            description: 'Zamiana WF (poniedziałek) z fizyką (czwartek) dla klasy 2B',
+            impact: 'medium',
+            reason: 'Zrównoważenie obciążenia uczniów'
+          },
+          {
+            type: 'room',
+            description: 'Zmiana sali z 103 na 107 dla informatyki (piątek, 11:50)',
+            impact: 'low',
+            reason: 'Lepsze wykorzystanie sal specjalistycznych'
+          }
+        ],
+        statistics: {
+          teacherLoadImprovement: 15,
+          roomUsageImprovement: 8,
+          studentLoadImprovement: 22,
+          conflictsResolved: 3
+        }
+      };
+      
+      setOptimizationResults(mockResults);
+      
+      // Obliczenie wyniku optymalizacji (0-100)
+      const score = Math.min(
+        100,
+        mockResults.statistics.teacherLoadImprovement +
+        mockResults.statistics.roomUsageImprovement +
+        mockResults.statistics.studentLoadImprovement +
+        mockResults.statistics.conflictsResolved * 5
+      );
+      
+      setOptimizationScore(score);
+      setLoading(false);
+      setActiveStep(3); // Przejście do kroku z wynikami
+    }, 3000);
+  };
+
+  // Symulacja zastosowania optymalizacji
+  const applyOptimization = () => {
+    setLoading(true);
+    
+    // Symulacja opóźnienia procesu zastosowania zmian
+    setTimeout(() => {
+      setLoading(false);
+      setActiveStep(4); // Przejście do kroku końcowego
+    }, 2000);
+  };
+
+  // Kroki kreatora
+  const steps = [
+    {
+      label: 'Wybierz cele optymalizacji',
+      description: 'Określ, co chcesz osiągnąć poprzez optymalizację planu lekcji.',
+      content: (
+        <Box sx={{ mt: 2 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                Cele optymalizacji:
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Chip 
+                      label="Zrównoważenie obciążenia nauczycieli" 
+                      color={optimizationGoals.balanceTeacherLoad ? "primary" : "default"}
+                      onClick={handleGoalChange('balanceTeacherLoad')}
+                      sx={{ mr: 1 }}
+                    />
+                    <Tooltip title="Równomierne rozłożenie zajęć nauczycieli w tygodniu">
+                      <InfoIcon fontSize="small" color="action" />
+                    </Tooltip>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Chip 
+                      label="Maksymalizacja wykorzystania sal" 
+                      color={optimizationGoals.maximizeRoomUsage ? "primary" : "default"}
+                      onClick={handleGoalChange('maximizeRoomUsage')}
+                      sx={{ mr: 1 }}
+                    />
+                    <Tooltip title="Efektywne wykorzystanie sal specjalistycznych">
+                      <InfoIcon fontSize="small" color="action" />
+                    </Tooltip>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Chip 
+                      label="Minimalizacja obciążenia uczniów" 
+                      color={optimizationGoals.minimizeStudentLoad ? "primary" : "default"}
+                      onClick={handleGoalChange('minimizeStudentLoad')}
+                      sx={{ mr: 1 }}
+                    />
+                    <Tooltip title="Lepsze rozłożenie trudnych przedmiotów w tygodniu">
+                      <InfoIcon fontSize="small" color="action" />
+                    </Tooltip>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Chip 
+                      label="Unikanie konfliktów" 
+                      color={optimizationGoals.avoidConflicts ? "primary" : "default"}
+                      onClick={handleGoalChange('avoidConflicts')}
+                      sx={{ mr: 1 }}
+                    />
+                    <Tooltip title="Eliminacja nakładających się zajęć i innych konfliktów">
+                      <InfoIcon fontSize="small" color="action" />
+                    </Tooltip>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Chip 
+                      label="Uwzględnienie preferencji nauczycieli" 
+                      color={optimizationGoals.considerPreferences ? "primary" : "default"}
+                      onClick={handleGoalChange('considerPreferences')}
+                      sx={{ mr: 1 }}
+                    />
+                    <Tooltip title="Branie pod uwagę preferencji dot. godzin nauczycieli">
+                      <InfoIcon fontSize="small" color="action" />
+                    </Tooltip>
+                  </Box>
+                </Grid>
+              </Grid>
+              
+              <Divider sx={{ my: 3 }} />
+              
+              <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                Poziom optymalizacji:
+              </Typography>
+              
+              <FormControl fullWidth>
+                <Select
+                  value={optimizationLevel}
+                  onChange={handleLevelChange}
+                  displayEmpty
                 >
-                  Rozpocznij analizę
-                </Button>
-              </Box>
-            )}
-          </Box>
-        );
-      case 1:
-        return (
-          <Box>
-            <Typography paragraph>
-              Na podstawie analizy planu, asystent AI zidentyfikował następujące problemy:
-            </Typography>
+                  <MenuItem value="minimal">Minimalny - tylko niezbędne zmiany</MenuItem>
+                  <MenuItem value="balanced">Zbalansowany - rozsądna liczba zmian</MenuItem>
+                  <MenuItem value="aggressive">Agresywny - maksymalna optymalizacja</MenuItem>
+                </Select>
+              </FormControl>
+            </CardContent>
+          </Card>
+        </Box>
+      )
+    },
+    {
+      label: 'Wybierz zakres optymalizacji',
+      description: 'Określ, które klasy i nauczyciele mają być objęci optymalizacją.',
+      content: (
+        <Box sx={{ mt: 2 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Wybierz klasy do optymalizacji:
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {classes.map((className) => (
+                      <Chip
+                        key={className}
+                        label={className}
+                        onClick={handleClassToggle(className)}
+                        color={selectedClasses.includes(className) ? "primary" : "default"}
+                        variant={selectedClasses.includes(className) ? "filled" : "outlined"}
+                      />
+                    ))}
+                  </Box>
+                  
+                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+                    <Button 
+                      variant="outlined" 
+                      size="small"
+                      onClick={() => setSelectedClasses([])}
+                    >
+                      Wyczyść
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      size="small"
+                      onClick={() => setSelectedClasses([...classes])}
+                    >
+                      Wybierz wszystkie
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
             
-            <Box sx={{ mb: 2 }}>
-              {optimizationResults?.issues.map((issue) => (
-                <Alert key={issue.id} severity="warning" sx={{ mb: 1 }}>
-                  {issue.description}
-                </Alert>
-              ))}
-            </Box>
-            
-            <Typography paragraph>
-              Obecna ocena planu:
-            </Typography>
-            
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} sm={4}>
-                <Paper 
-                  elevation={1} 
-                  sx={{ 
-                    p: 1, 
-                    textAlign: 'center',
-                    backgroundColor: theme.palette.primary.main,
-                    color: theme.palette.primary.contrastText
-                  }}
-                >
-                  <Typography variant="h4" fontWeight="bold">
-                    {optimizationResults?.score.overall}/100
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Wybierz nauczycieli do optymalizacji:
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {teachers.map((teacher) => (
+                      <Chip
+                        key={teacher.id}
+                        label={`${teacher.name} (${teacher.subject})`}
+                        onClick={handleTeacherToggle(teacher.id)}
+                        color={selectedTeachers.includes(teacher.id) ? "primary" : "default"}
+                        variant={selectedTeachers.includes(teacher.id) ? "filled" : "outlined"}
+                        sx={{ mb: 1 }}
+                      />
+                    ))}
+                  </Box>
+                  
+                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+                    <Button 
+                      variant="outlined" 
+                      size="small"
+                      onClick={() => setSelectedTeachers([])}
+                    >
+                      Wyczyść
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      size="small"
+                      onClick={() => setSelectedTeachers(teachers.map(t => t.id))}
+                    >
+                      Wybierz wszystkich
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Box>
+      )
+    },
+    {
+      label: 'Podsumowanie i uruchomienie',
+      description: 'Sprawdź ustawienia i uruchom proces optymalizacji.',
+      content: (
+        <Box sx={{ mt: 2 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                Podsumowanie ustawień optymalizacji:
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    Cele optymalizacji:
+                  </Typography>
+                  <Box sx={{ pl: 2 }}>
+                    {optimizationGoals.balanceTeacherLoad && (
+                      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
+                        <CheckCircleIcon fontSize="small" color="success" sx={{ mr: 1 }} />
+                        Zrównoważenie obciążenia nauczycieli
+                      </Typography>
+                    )}
+                    {optimizationGoals.maximizeRoomUsage && (
+                      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
+                        <CheckCircleIcon fontSize="small" color="success" sx={{ mr: 1 }} />
+                        Maksymalizacja wykorzystania sal
+                      </Typography>
+                    )}
+                    {optimizationGoals.minimizeStudentLoad && (
+                      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
+                        <CheckCircleIcon fontSize="small" color="success" sx={{ mr: 1 }} />
+                        Minimalizacja obciążenia uczniów
+                      </Typography>
+                    )}
+                    {optimizationGoals.avoidConflicts && (
+                      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
+                        <CheckCircleIcon fontSize="small" color="success" sx={{ mr: 1 }} />
+                        Unikanie konfliktów
+                      </Typography>
+                    )}
+                    {optimizationGoals.considerPreferences && (
+                      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
+                        <CheckCircleIcon fontSize="small" color="success" sx={{ mr: 1 }} />
+                        Uwzględnienie preferencji nauczycieli
+                      </Typography>
+                    )}
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    Poziom optymalizacji:
                   </Typography>
                   <Typography variant="body2">
-                    Ocena ogólna
+                    {optimizationLevel === 'minimal' && 'Minimalny - tylko niezbędne zmiany'}
+                    {optimizationLevel === 'balanced' && 'Zbalansowany - rozsądna liczba zmian'}
+                    {optimizationLevel === 'aggressive' && 'Agresywny - maksymalna optymalizacja'}
                   </Typography>
-                </Paper>
+                  
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', mt: 2, mb: 1 }}>
+                    Wybrane klasy ({selectedClasses.length}):
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selectedClasses.map((className) => (
+                      <Chip
+                        key={className}
+                        label={className}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                      />
+                    ))}
+                  </Box>
+                  
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', mt: 2, mb: 1 }}>
+                    Wybrani nauczyciele ({selectedTeachers.length}):
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selectedTeachers.map((id) => {
+                      const teacher = teachers.find(t => t.id === id);
+                      return (
+                        <Chip
+                          key={id}
+                          label={teacher ? teacher.name : `Nauczyciel ${id}`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      );
+                    })}
+                  </Box>
+                </Grid>
               </Grid>
-              <Grid item xs={6} sm={2}>
-                <Paper 
-                  elevation={1} 
-                  sx={{ 
-                    p: 1, 
-                    textAlign: 'center',
-                    backgroundColor: theme.palette.info.light
-                  }}
-                >
-                  <Typography variant="h6" fontWeight="bold">
-                    {optimizationResults?.score.studentComfort}
-                  </Typography>
-                  <Typography variant="caption">
-                    Komfort uczniów
-                  </Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={6} sm={2}>
-                <Paper 
-                  elevation={1} 
-                  sx={{ 
-                    p: 1, 
-                    textAlign: 'center',
-                    backgroundColor: theme.palette.success.light
-                  }}
-                >
-                  <Typography variant="h6" fontWeight="bold">
-                    {optimizationResults?.score.teacherComfort}
-                  </Typography>
-                  <Typography variant="caption">
-                    Komfort nauczycieli
-                  </Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={6} sm={2}>
-                <Paper 
-                  elevation={1} 
-                  sx={{ 
-                    p: 1, 
-                    textAlign: 'center',
-                    backgroundColor: theme.palette.warning.light
-                  }}
-                >
-                  <Typography variant="h6" fontWeight="bold">
-                    {optimizationResults?.score.roomUtilization}
-                  </Typography>
-                  <Typography variant="caption">
-                    Wykorzystanie sal
-                  </Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={6} sm={2}>
-                <Paper 
-                  elevation={1} 
-                  sx={{ 
-                    p: 1, 
-                    textAlign: 'center',
-                    backgroundColor: theme.palette.secondary.light
-                  }}
-                >
-                  <Typography variant="h6" fontWeight="bold">
-                    {optimizationResults?.score.subjectDistribution}
-                  </Typography>
-                  <Typography variant="caption">
-                    Rozkład przedmiotów
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-            
-            <Typography paragraph>
-              Wybierz priorytety optymalizacji:
-            </Typography>
-            
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={6} sm={3}>
+              
+              <Box sx={{ mt: 3, textAlign: 'center' }}>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  Proces optymalizacji może potrwać kilka minut, w zależności od złożoności planu i wybranych opcji.
+                </Typography>
+                
                 <Button
-                  variant={optimizationConfig.prioritizeStudentComfort ? "contained" : "outlined"}
-                  color="info"
-                  fullWidth
-                  onClick={() => setOptimizationConfig({
-                    ...optimizationConfig,
-                    prioritizeStudentComfort: !optimizationConfig.prioritizeStudentComfort
-                  })}
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AutoFixHighIcon />}
+                  onClick={handleNext}
+                  disabled={selectedClasses.length === 0}
+                  sx={{ minWidth: 200 }}
                 >
-                  Komfort uczniów
+                  Uruchom optymalizację
                 </Button>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Button
-                  variant={optimizationConfig.prioritizeTeacherComfort ? "contained" : "outlined"}
-                  color="success"
-                  fullWidth
-                  onClick={() => setOptimizationConfig({
-                    ...optimizationConfig,
-                    prioritizeTeacherComfort: !optimizationConfig.prioritizeTeacherComfort
-                  })}
-                >
-                  Komfort nauczycieli
-                </Button>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Button
-                  variant={optimizationConfig.prioritizeRoomUtilization ? "contained" : "outlined"}
-                  color="warning"
-                  fullWidth
-                  onClick={() => setOptimizationConfig({
-                    ...optimizationConfig,
-                    prioritizeRoomUtilization: !optimizationConfig.prioritizeRoomUtilization
-                  })}
-                >
-                  Wykorzystanie sal
-                </Button>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Button
-                  variant={optimizationConfig.prioritizeSubjectDistribution ? "contained" : "outlined"}
-                  color="secondary"
-                  fullWidth
-                  onClick={() => setOptimizationConfig({
-                    ...optimizationConfig,
-                    prioritizeSubjectDistribution: !optimizationConfig.prioritizeSubjectDistribution
-                  })}
-                >
-                  Rozkład przedmiotów
-                </Button>
-              </Grid>
-            </Grid>
-            
-            <Box sx={{ mb: 2 }}>
-              <Typography gutterBottom>
-                Maksymalna liczba zmian:
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      )
+    },
+    {
+      label: 'Wyniki optymalizacji',
+      description: 'Przejrzyj wyniki i zdecyduj, czy chcesz zastosować zmiany.',
+      content: (
+        <Box sx={{ mt: 2 }}>
+          {loading ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
+              <CircularProgress size={60} sx={{ mb: 2 }} />
+              <Typography variant="h6">
+                Trwa optymalizacja planu...
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant={optimizationConfig.maxChangesAllowed === 'low' ? "contained" : "outlined"}
-                  onClick={() => setOptimizationConfig({
-                    ...optimizationConfig,
-                    maxChangesAllowed: 'low'
-                  })}
-                >
-                  Niewiele zmian
-                </Button>
-                <Button
-                  variant={optimizationConfig.maxChangesAllowed === 'medium' ? "contained" : "outlined"}
-                  onClick={() => setOptimizationConfig({
-                    ...optimizationConfig,
-                    maxChangesAllowed: 'medium'
-                  })}
-                >
-                  Umiarkowane zmiany
-                </Button>
-                <Button
-                  variant={optimizationConfig.maxChangesAllowed === 'high' ? "contained" : "outlined"}
-                  onClick={() => setOptimizationConfig({
-                    ...optimizationConfig,
-                    maxChangesAllowed: 'high'
-                  })}
-                >
-                  Dużo zmian
-                </Button>
-              </Box>
+              <Typography variant="body2" color="textSecondary">
+                Analizowanie możliwych zmian i generowanie optymalnego planu
+              </Typography>
             </Box>
-            
-            <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
-              <Button
-                color="inherit"
-                onClick={handleBack}
-                sx={{ mr: 1 }}
-              >
-                Wstecz
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleNext}
-                sx={{ mr: 1 }}
-              >
-                Generuj propozycje
-              </Button>
-            </Box>
-          </Box>
-        );
-      case 2:
-        return (
-          <Box>
-            {optimizationInProgress ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 3 }}>
-                <CircularProgress sx={{ mb: 2 }} />
-                <Typography>Generowanie propozycji optymalizacji...</Typography>
-                <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>
-                  Asystent AI analizuje możliwe zmiany w planie lekcji zgodnie z wybranymi priorytetami.
-                </Typography>
-              </Box>
-            ) : (
-              <Box>
-                <Typography paragraph>
-                  Asystent AI wygenerował propozycje zmian w planie lekcji.
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        );
-      case 3:
-        return (
-          <Box>
-            {optimizationInProgress ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 3 }}>
-                <CircularProgress sx={{ mb: 2 }} />
-                <Typography>Zastosowywanie wybranych zmian...</Typography>
-              </Box>
-            ) : (
-              <Box>
-                <Typography paragraph>
-                  Przejrzyj proponowane zmiany i wybierz te, które chcesz zastosować:
-                </Typography>
-                
-                <Box sx={{ mb: 3 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Paper sx={{ p: 2, height: '100%' }}>
-                        <Typography variant="h6" gutterBottom>
-                          Obecna ocena
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <Typography variant="h3" color="primary" sx={{ mr: 1 }}>
-                            {optimizationResults?.score.overall}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            / 100
-                          </Typography>
-                        </Box>
-                        <Divider sx={{ mb: 2 }} />
-                        <Grid container spacing={1}>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              Komfort uczniów:
-                            </Typography>
-                            <Typography variant="body1">
-                              {optimizationResults?.score.studentComfort}/100
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              Komfort nauczycieli:
-                            </Typography>
-                            <Typography variant="body1">
-                              {optimizationResults?.score.teacherComfort}/100
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              Wykorzystanie sal:
-                            </Typography>
-                            <Typography variant="body1">
-                              {optimizationResults?.score.roomUtilization}/100
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              Rozkład przedmiotów:
-                            </Typography>
-                            <Typography variant="body1">
-                              {optimizationResults?.score.subjectDistribution}/100
-                            </Typography>
-                          </Grid>
-                        </Grid>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Paper sx={{ p: 2, height: '100%', bgcolor: 'success.light' }}>
-                        <Typography variant="h6" gutterBottom>
-                          Przewidywana ocena
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <Typography variant="h3" color="success.dark" sx={{ mr: 1 }}>
-                            {optimizationResults?.predictedScore.overall}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            / 100
-                          </Typography>
-                          <Typography variant="h6" color="success.dark" sx={{ ml: 2 }}>
-                            +{optimizationResults?.predictedScore.overall - optimizationResults?.score.overall}
-                          </Typography>
-                        </Box>
-                        <Divider sx={{ mb: 2 }} />
-                        <Grid container spacing={1}>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              Komfort uczniów:
-                            </Typography>
-                            <Typography variant="body1">
-                              {optimizationResults?.predictedScore.studentComfort}/100
-                              <Typography component="span" color="success.dark" sx={{ ml: 1 }}>
-                                (+{optimizationResults?.predictedScore.studentComfort - optimizationResults?.score.studentComfort})
-                              </Typography>
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              Komfort nauczycieli:
-                            </Typography>
-                            <Typography variant="body1">
-                              {optimizationResults?.predictedScore.teacherComfort}/100
-                              <Typography component="span" color="success.dark" sx={{ ml: 1 }}>
-                                (+{optimizationResults?.predictedScore.teacherComfort - optimizationResults?.score.teacherComfort})
-                              </Typography>
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              Wykorzystanie sal:
-                            </Typography>
-                            <Typography variant="body1">
-                              {optimizationResults?.predictedScore.roomUtilization}/100
-                              <Typography component="span" color="success.dark" sx={{ ml: 1 }}>
-                                (+{optimizationResults?.predictedScore.roomUtilization - optimizationResults?.score.roomUtilization})
-                              </Typography>
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              Rozkład przedmiotów:
-                            </Typography>
-                            <Typography variant="body1">
-                              {optimizationResults?.predictedScore.subjectDistribution}/100
-                              <Typography component="span" color="success.dark" sx={{ ml: 1 }}>
-                                (+{optimizationResults?.predictedScore.subjectDistribution - optimizationResults?.score.subjectDistribution})
-                              </Typography>
-                            </Typography>
-                          </Grid>
-                        </Grid>
-                      </Paper>
-                    </Grid>
-                  </Grid>
-                </Box>
-                
-                <Typography variant="h6" gutterBottom>
-                  Proponowane zmiany:
-                </Typography>
-                
-                {optimizationResults?.proposals.map((proposal) => (
-                  <Card key={proposal.id} sx={{ mb: 2 }}>
+          ) : (
+            optimizationResults && (
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <Card>
                     <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <Typography variant="body1">
-                          {proposal.description}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="h6">
+                          Wynik optymalizacji
                         </Typography>
-                        <Box>
-                          <Chip 
-                            label={`Uczniowie: ${proposal.impact.studentComfort > 0 ? '+' : ''}${proposal.impact.studentComfort}`} 
-                            color={proposal.impact.studentComfort > 0 ? "success" : proposal.impact.studentComfort < 0 ? "error" : "default"}
-                            size="small"
-                            sx={{ mr: 0.5, mb: 0.5 }}
-                          />
-                          <Chip 
-                            label={`Nauczyciele: ${proposal.impact.teacherComfort > 0 ? '+' : ''}${proposal.impact.teacherComfort}`} 
-                            color={proposal.impact.teacherComfort > 0 ? "success" : proposal.impact.teacherComfort < 0 ? "error" : "default"}
-                            size="small"
-                            sx={{ mr: 0.5, mb: 0.5 }}
-                          />
-                          <Chip 
-                            label={`Sale: ${proposal.impact.roomUtilization > 0 ? '+' : ''}${proposal.impact.roomUtilization}`} 
-                            color={proposal.impact.roomUtilization > 0 ? "success" : proposal.impact.roomUtilization < 0 ? "error" : "default"}
-                            size="small"
-                            sx={{ mr: 0.5, mb: 0.5 }}
-                          />
-                          <Chip 
-                            label={`Przedmioty: ${proposal.impact.subjectDistribution > 0 ? '+' : ''}${proposal.impact.subjectDistribution}`} 
-                            color={proposal.impact.subjectDistribution > 0 ? "success" : proposal.impact.subjectDistribution < 0 ? "error" : "default"}
-                            size="small"
-                            sx={{ mb: 0.5 }}
-                          />
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="h5" color="primary" fontWeight="bold">
+                            {optimizationScore}/100 punktów
+                          </Typography>
                         </Box>
                       </Box>
+                      
+                      <Box sx={{ position: 'relative', height: 8, bgcolor: theme.palette.grey[200], borderRadius: 4, mb: 3 }}>
+                        <Box 
+                          sx={{ 
+                            position: 'absolute', 
+                            top: 0, 
+                            left: 0, 
+                            height: '100%', 
+                            width: `${optimizationScore}%`,
+                            bgcolor: optimizationScore > 80 ? theme.palette.success.main : 
+                                    optimizationScore > 50 ? theme.palette.warning.main : 
+                                    theme.palette.error.main,
+                            borderRadius: 4
+                          }} 
+                        />
+                      </Box>
+                      
+                      <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                        Proponowane zmiany:
+                      </Typography>
+                      
+                      {optimizationResults.changes.map((change, index) => (
+                        <Paper
+                          key={index}
+                          elevation={1}
+                          sx={{ 
+                            p: 2, 
+                            mb: 2, 
+                            borderLeft: `4px solid ${
+                              change.impact === 'high' ? theme.palette.error.main :
+                              change.impact === 'medium' ? theme.palette.warning.main :
+                              theme.palette.success.main
+                            }`
+                          }}
+                        >
+                          <Typography variant="body1">
+                            {change.description}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                            Powód: {change.reason}
+                          </Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                            <Chip 
+                              label={`Wpływ: ${
+                                change.impact === 'high' ? 'Wysoki' :
+                                change.impact === 'medium' ? 'Średni' :
+                                'Niski'
+                              }`} 
+                              size="small"
+                              color={
+                                change.impact === 'high' ? 'error' :
+                                change.impact === 'medium' ? 'warning' :
+                                'success'
+                              }
+                            />
+                          </Box>
+                        </Paper>
+                      ))}
+                      
+                      <Divider sx={{ my: 3 }} />
+                      
+                      <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                        Statystyki usprawnień:
+                      </Typography>
+                      
+                      <Grid container spacing={2}>
+                        <Grid item xs={6} sm={3}>
+                          <Box sx={{ textAlign: 'center', p: 1 }}>
+                            <Typography variant="h5" color="primary">
+                              +{optimizationResults.statistics.teacherLoadImprovement}%
+                            </Typography>
+                            <Typography variant="body2">
+                              Obciążenie nauczycieli
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Box sx={{ textAlign: 'center', p: 1 }}>
+                            <Typography variant="h5" color="primary">
+                              +{optimizationResults.statistics.roomUsageImprovement}%
+                            </Typography>
+                            <Typography variant="body2">
+                              Wykorzystanie sal
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Box sx={{ textAlign: 'center', p: 1 }}>
+                            <Typography variant="h5" color="primary">
+                              +{optimizationResults.statistics.studentLoadImprovement}%
+                            </Typography>
+                            <Typography variant="body2">
+                              Komfort uczniów
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Box sx={{ textAlign: 'center', p: 1 }}>
+                            <Typography variant="h5" color="primary">
+                              {optimizationResults.statistics.conflictsResolved}
+                            </Typography>
+                            <Typography variant="body2">
+                              Rozwiązane konflikty
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                      
+                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          onClick={handleReset}
+                          sx={{ mr: 2 }}
+                        >
+                          Odrzuć zmiany
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          onClick={applyOptimization}
+                        >
+                          Zastosuj zmiany
+                        </Button>
+                      </Box>
                     </CardContent>
-                    <CardActions>
-                      <Button size="small" startIcon={<CheckIcon />} color="success">
-                        Zastosuj
-                      </Button>
-                      <Button size="small" startIcon={<CloseIcon />} color="error">
-                        Odrzuć
-                      </Button>
-                      <Button size="small" startIcon={<CompareIcon />}>
-                        Porównaj
-                      </Button>
-                    </CardActions>
                   </Card>
-                ))}
+                </Grid>
+              </Grid>
+            )
+          )}
+        </Box>
+      )
+    },
+    {
+      label: 'Zakończenie',
+      description: 'Optymalizacja zakończona pomyślnie.',
+      content: (
+        <Box sx={{ mt: 2 }}>
+          {loading ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
+              <CircularProgress size={60} sx={{ mb: 2 }} />
+              <Typography variant="h6">
+                Trwa zastosowywanie zmian...
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Aktualizowanie planu lekcji z nowymi ustawieniami
+              </Typography>
+            </Box>
+          ) : (
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 4 }}>
+                <CheckCircleIcon sx={{ fontSize: 60, color: theme.palette.success.main, mb: 2 }} />
                 
-                <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
+                <Typography variant="h5" sx={{ mb: 2 }}>
+                  Optymalizacja zakończona pomyślnie!
+                </Typography>
+                
+                <Typography variant="body1" sx={{ mb: 3 }}>
+                  Wszystkie zaproponowane zmiany zostały zastosowane do planu lekcji.
+                  Plan został zoptymalizowany zgodnie z wybranymi celami i parametrami.
+                </Typography>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
                   <Button
-                    color="inherit"
-                    onClick={handleBack}
-                    sx={{ mr: 1 }}
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<SaveIcon />}
                   >
-                    Wstecz
+                    Zapisz raport
                   </Button>
                   <Button
                     variant="contained"
-                    onClick={handleNext}
-                    sx={{ mr: 1 }}
+                    color="primary"
+                    startIcon={<RestartAltIcon />}
+                    onClick={handleReset}
                   >
-                    Zastosuj wybrane zmiany
+                    Nowa optymalizacja
                   </Button>
                 </Box>
-              </Box>
-            )}
-          </Box>
-        );
-      case 4:
-        return (
-          <Box sx={{ py: 3, textAlign: 'center' }}>
-            <Typography variant="h5" color="success.main" gutterBottom>
-              Optymalizacja zakończona pomyślnie!
-            </Typography>
-            <Typography paragraph>
-              Wybrane zmiany zostały zastosowane do planu lekcji. Ocena planu wzrosła z {optimizationResults?.score.overall} do {optimizationResults?.predictedScore.overall} punktów.
-            </Typography>
-            <Button
-              variant="outlined"
-              onClick={handleReset}
-              sx={{ mt: 1, mr: 1 }}
-            >
-              Rozpocznij nową optymalizację
-            </Button>
-          </Box>
-        );
-      default:
-        return null;
+              </CardContent>
+            </Card>
+          )}
+        </Box>
+      )
     }
-  };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
-    );
-  }
+  ];
 
   return (
     <Box sx={{ p: 3 }}>
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <AIIcon color="primary" sx={{ fontSize: 32, mr: 2 }} />
-          <Typography variant="h5">
-            Kreator optymalizacji planu lekcji
-          </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <AutoFixHighIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
+          <Typography variant="h5">Kreator optymalizacji planu</Typography>
         </Box>
-        
-        {activeStep < steps.length && (
-          <Stepper activeStep={activeStep} orientation="vertical">
-            {steps.map((step, index) => (
-              <Step key={step.label}>
-                <StepLabel>
-                  {step.label}
-                </StepLabel>
-                <StepContent>
-                  <Typography color="text.secondary" paragraph>
-                    {step.description}
-                  </Typography>
-                  {renderStepContent(index)}
-                </StepContent>
-              </Step>
-            ))}
-          </Stepper>
-        )}
-        
-        {activeStep === steps.length && renderStepContent(activeStep)}
-      </Paper>
+        <IconButton>
+          <SettingsIcon />
+        </IconButton>
+      </Box>
+
+      <Stepper activeStep={activeStep} orientation="vertical">
+        {steps.map((step, index) => (
+          <Step key={step.label}>
+            <StepLabel>
+              <Typography variant="subtitle1">{step.label}</Typography>
+            </StepLabel>
+            <StepContent>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                {step.description}
+              </Typography>
+              
+              {step.content}
+              
+              <Box sx={{ mb: 2, mt: 3 }}>
+                <div>
+                  {index !== 3 && index !== 4 && (
+                    <Button
+                      variant="contained"
+                      onClick={handleNext}
+                      sx={{ mt: 1, mr: 1 }}
+                      endIcon={<ArrowForwardIcon />}
+                      disabled={(index === 1 && selectedClasses.length === 0) || loading}
+                    >
+                      {index === steps.length - 3 ? 'Uruchom optymalizację' : 'Dalej'}
+                    </Button>
+                  )}
+                  
+                  {index > 0 && index !== 4 && (
+                    <Button
+                      onClick={handleBack}
+                      sx={{ mt: 1, mr: 1 }}
+                      startIcon={<ArrowBackIcon />}
+                      disabled={loading}
+                    >
+                      Wstecz
+                    </Button>
+                  )}
+                </div>
+              </Box>
+            </StepContent>
+          </Step>
+        ))}
+      </Stepper>
     </Box>
   );
 };

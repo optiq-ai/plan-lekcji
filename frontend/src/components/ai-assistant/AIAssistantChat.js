@@ -1,310 +1,269 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Box, 
-  Paper, 
   Typography, 
+  Paper, 
   Grid, 
-  Divider, 
-  useTheme,
-  CircularProgress,
+  Card, 
+  CardContent,
   Button,
   TextField,
   IconButton,
   Avatar,
+  Chip,
+  Divider,
+  CircularProgress,
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar,
-  Chip
+  ListItemIcon,
+  ListItemAvatar
 } from '@mui/material';
-import {
-  Send as SendIcon,
-  SmartToy as AIIcon,
-  Person as PersonIcon,
-  Lightbulb as LightbulbIcon,
-  Settings as SettingsIcon,
-  Close as CloseIcon
-} from '@mui/icons-material';
-import LessonPlanService from '../../services/LessonPlanService';
+import { useTheme } from '@mui/material/styles';
+import SendIcon from '@mui/icons-material/Send';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import PersonIcon from '@mui/icons-material/Person';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import WarningIcon from '@mui/icons-material/Warning';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import SettingsIcon from '@mui/icons-material/Settings';
+import HistoryIcon from '@mui/icons-material/History';
 
-const AIAssistantChat = ({ planId }) => {
+/**
+ * Komponent czatu z asystentem AI
+ * Umożliwia interaktywną komunikację z asystentem AI w celu optymalizacji planu lekcji
+ */
+const AIAssistantChat = () => {
   const theme = useTheme();
-  const [loading, setLoading] = useState(false);
-  const [planData, setPlanData] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [error, setError] = useState(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
   const [suggestions, setSuggestions] = useState([]);
 
-  // Przykładowe sugestie asystenta AI
-  const defaultSuggestions = [
-    'Zoptymalizuj plan pod kątem komfortu uczniów',
-    'Zrównoważ obciążenie nauczycieli',
-    'Popraw wykorzystanie sal lekcyjnych',
-    'Znajdź i rozwiąż konflikty w planie',
-    'Zaproponuj lepszy rozkład przedmiotów'
-  ];
-
+  // Symulacja początkowego powitania od asystenta
   useEffect(() => {
-    const fetchData = async () => {
-      if (!planId) return;
-      
-      try {
-        setLoading(true);
-        
-        // Pobierz dane planu lekcji
-        const planResponse = await LessonPlanService.getLessonPlanById(planId);
-        setPlanData(planResponse);
-        
-        // Inicjalizacja wiadomości powitalnej od asystenta
-        setMessages([
-          {
-            id: 1,
-            sender: 'ai',
-            text: `Witaj! Jestem Twoim asystentem AI do planowania lekcji. Jak mogę pomóc z planem "${planResponse.name}"?`,
-            timestamp: new Date()
-          }
-        ]);
-        
-        // Ustaw domyślne sugestie
-        setSuggestions(defaultSuggestions);
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Błąd podczas pobierania danych planu:', err);
-        setError('Wystąpił błąd podczas ładowania danych. Spróbuj ponownie później.');
-        setLoading(false);
-      }
+    const initialMessage = {
+      id: 1,
+      sender: 'ai',
+      text: 'Witaj! Jestem Twoim asystentem AI do planowania lekcji. W czym mogę Ci dzisiaj pomóc?',
+      timestamp: new Date().toISOString()
     };
     
-    fetchData();
-  }, [planId]);
-
-  // Funkcja do wysyłania wiadomości
-  const sendMessage = async () => {
-    if (!inputMessage.trim()) return;
+    setMessages([initialMessage]);
     
-    // Dodaj wiadomość użytkownika do listy
+    // Symulacja sugestii
+    setSuggestions([
+      'Zoptymalizuj plan klasy 1A',
+      'Znajdź wolne sale w czwartek',
+      'Zaplanuj zastępstwo za nauczyciela matematyki',
+      'Wykryj konflikty w planie'
+    ]);
+  }, []);
+
+  // Automatyczne przewijanie do najnowszej wiadomości
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  // Obsługa wysyłania wiadomości
+  const handleSendMessage = () => {
+    if (newMessage.trim() === '') return;
+    
+    // Dodanie wiadomości użytkownika
     const userMessage = {
       id: messages.length + 1,
       sender: 'user',
-      text: inputMessage,
-      timestamp: new Date()
+      text: newMessage,
+      timestamp: new Date().toISOString()
     };
     
     setMessages(prevMessages => [...prevMessages, userMessage]);
-    setInputMessage('');
+    setNewMessage('');
+    setIsTyping(true);
     
-    // Symulacja odpowiedzi asystenta AI (w rzeczywistej aplikacji byłoby to zapytanie do API)
-    setLoading(true);
-    
+    // Symulacja odpowiedzi asystenta po krótkim opóźnieniu
     setTimeout(() => {
-      // Przykładowe odpowiedzi asystenta w zależności od zapytania
-      let aiResponse = '';
-      let newSuggestions = [...defaultSuggestions];
-      
-      if (inputMessage.toLowerCase().includes('optymalizuj') || inputMessage.toLowerCase().includes('zoptymalizuj')) {
-        aiResponse = 'Rozpoczynam optymalizację planu lekcji. Analizuję obciążenie nauczycieli, rozkład przedmiotów i wykorzystanie sal...';
-        newSuggestions = [
-          'Pokaż szczegóły optymalizacji',
-          'Zastosuj zmiany w planie',
-          'Porównaj z obecnym planem',
-          'Zapisz jako nowy wariant planu'
-        ];
-      } else if (inputMessage.toLowerCase().includes('konflikt') || inputMessage.toLowerCase().includes('problem')) {
-        aiResponse = 'Wykryłem 3 konflikty w planie lekcji: nakładające się lekcje dla nauczyciela Jan Kowalski, zbyt duże obciążenie klasy 3A w środy, oraz nieoptymalne wykorzystanie sali 102.';
-        newSuggestions = [
-          'Rozwiąż wszystkie konflikty automatycznie',
-          'Pokaż szczegóły konfliktów',
-          'Rozwiąż konflikt nauczyciela',
-          'Rozwiąż konflikt klasy 3A'
-        ];
-      } else if (inputMessage.toLowerCase().includes('nauczyciel') || inputMessage.toLowerCase().includes('obciążenie')) {
-        aiResponse = 'Analizuję obciążenie nauczycieli. Wykryłem nierównomierne rozłożenie godzin. Nauczyciel Anna Nowak ma 28 godzin tygodniowo, podczas gdy średnia wynosi 22 godziny.';
-        newSuggestions = [
-          'Zrównoważ obciążenie nauczycieli',
-          'Pokaż szczegółową analizę obciążenia',
-          'Optymalizuj plan dla Anny Nowak',
-          'Porównaj obciążenie wszystkich nauczycieli'
-        ];
-      } else {
-        aiResponse = 'Przeanalizowałem plan lekcji i znalazłem kilka możliwości optymalizacji. Mogę pomóc z równomiernym rozłożeniem przedmiotów, optymalizacją wykorzystania sal lub zrównoważeniem obciążenia nauczycieli.';
-      }
-      
-      const aiMessageResponse = {
-        id: messages.length + 2,
-        sender: 'ai',
-        text: aiResponse,
-        timestamp: new Date()
-      };
-      
-      setMessages(prevMessages => [...prevMessages, aiMessageResponse]);
-      setSuggestions(newSuggestions);
-      setLoading(false);
+      const aiResponse = generateAIResponse(newMessage);
+      setMessages(prevMessages => [...prevMessages, aiResponse]);
+      setIsTyping(false);
     }, 1500);
   };
 
-  // Obsługa naciśnięcia Enter w polu tekstowym
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  // Symulacja generowania odpowiedzi AI
+  const generateAIResponse = (userMessage) => {
+    const lowerCaseMessage = userMessage.toLowerCase();
+    let responseText = '';
+    
+    if (lowerCaseMessage.includes('optymalizuj') || lowerCaseMessage.includes('zoptymalizuj')) {
+      responseText = 'Rozpoczynam optymalizację planu. Analizuję obecny rozkład zajęć, obciążenie nauczycieli i dostępność sal. Na podstawie analizy sugeruję następujące zmiany:\n\n1. Zamiana matematyki z klasy 1A (wtorek, 8:00) z fizyką klasy 2B (środa, 10:45)\n2. Przesunięcie WF klasy 3C z piątku na poniedziałek\n3. Zmiana sali 103 na 107 dla zajęć informatyki w czwartek\n\nCzy chcesz, abym wprowadził te zmiany automatycznie?';
+    } else if (lowerCaseMessage.includes('wolne sale') || lowerCaseMessage.includes('dostępne sale')) {
+      responseText = 'Sprawdzam dostępność sal na czwartek. Oto wolne sale:\n\n- Sala 103: 8:00-9:40, 13:40-15:20\n- Sala 105: cały dzień\n- Sala 107: 11:50-13:30\n- Sala 110: 8:00-11:30, 15:30-17:10\n\nCzy chcesz zarezerwować którąś z tych sal?';
+    } else if (lowerCaseMessage.includes('zastępstwo') || lowerCaseMessage.includes('nieobecność')) {
+      responseText = 'Planuję zastępstwo za nauczyciela matematyki. Na podstawie analizy dostępności i kompetencji, proponuję:\n\n- Lekcja 1A (wtorek, 8:00): mgr Janina Kowalczyk\n- Lekcja 2B (środa, 10:45): mgr Adam Nowak\n- Lekcja 3C (piątek, 12:45): przesunięcie na przyszły tydzień\n\nCzy akceptujesz te propozycje?';
+    } else if (lowerCaseMessage.includes('konflikt') || lowerCaseMessage.includes('problem')) {
+      responseText = 'Wykryłem następujące konflikty w planie:\n\n⚠️ Nauczyciel Jan Kowalski ma przypisane dwie lekcje równocześnie (wtorek, 9:50)\n⚠️ Sala 104 ma zaplanowane dwie różne lekcje (środa, 11:50)\n⚠️ Klasa 2A ma zbyt dużo trudnych przedmiotów pod rząd (czwartek)\n\nCzy chcesz, abym zaproponował rozwiązania tych konfliktów?';
+    } else {
+      responseText = 'Rozumiem. Aby lepiej pomóc, potrzebuję więcej informacji. Czy chodzi o optymalizację planu, znalezienie wolnych sal, zaplanowanie zastępstwa, czy może wykrycie konfliktów w planie?';
     }
+    
+    return {
+      id: messages.length + 2,
+      sender: 'ai',
+      text: responseText,
+      timestamp: new Date().toISOString()
+    };
   };
 
   // Obsługa kliknięcia sugestii
   const handleSuggestionClick = (suggestion) => {
-    setInputMessage(suggestion);
+    setNewMessage(suggestion);
   };
 
-  // Formatowanie daty wiadomości
-  const formatMessageTime = (date) => {
+  // Formatowanie daty
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (error) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
-  }
-
   return (
-    <Paper elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ 
-        p: 2, 
-        backgroundColor: theme.palette.primary.main, 
-        color: theme.palette.primary.contrastText,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
+    <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <AIIcon sx={{ mr: 1 }} />
-          <Typography variant="h6">
-            Asystent AI
-            {planData && ` - ${planData.name}`}
-          </Typography>
+          <SmartToyIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
+          <Typography variant="h5">Asystent AI</Typography>
         </Box>
-        <IconButton size="small" sx={{ color: theme.palette.primary.contrastText }}>
-          <SettingsIcon />
-        </IconButton>
+        <Box>
+          <IconButton size="small" sx={{ mr: 1 }}>
+            <HistoryIcon />
+          </IconButton>
+          <IconButton size="small">
+            <SettingsIcon />
+          </IconButton>
+        </Box>
       </Box>
-      
-      <Divider />
-      
-      {/* Obszar wiadomości */}
-      <Box sx={{ 
-        flexGrow: 1, 
-        overflow: 'auto', 
-        p: 2,
-        backgroundColor: theme.palette.grey[50],
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2
-      }}>
+
+      <Paper 
+        elevation={3} 
+        sx={{ 
+          p: 2, 
+          flexGrow: 1, 
+          mb: 2, 
+          maxHeight: 'calc(100vh - 250px)', 
+          overflowY: 'auto',
+          bgcolor: theme.palette.background.default
+        }}
+      >
         {messages.map((message) => (
-          <Box 
+          <Box
             key={message.id}
-            sx={{ 
-              alignSelf: message.sender === 'user' ? 'flex-end' : 'flex-start',
-              maxWidth: '80%'
+            sx={{
+              display: 'flex',
+              justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
+              mb: 2
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-              {message.sender === 'ai' && (
-                <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
-                  <AIIcon />
-                </Avatar>
-              )}
-              
-              <Paper 
-                elevation={1} 
+            {message.sender === 'ai' && (
+              <Avatar 
                 sx={{ 
-                  p: 2,
-                  backgroundColor: message.sender === 'user' 
-                    ? theme.palette.primary.light 
-                    : theme.palette.background.paper,
-                  borderRadius: 2,
-                  borderTopRightRadius: message.sender === 'user' ? 0 : 2,
-                  borderTopLeftRadius: message.sender === 'ai' ? 0 : 2
+                  bgcolor: theme.palette.primary.main,
+                  mr: 1
                 }}
               >
-                <Typography variant="body1">
-                  {message.text}
-                </Typography>
-                <Typography variant="caption" color="textSecondary" sx={{ display: 'block', textAlign: 'right', mt: 1 }}>
-                  {formatMessageTime(message.timestamp)}
-                </Typography>
-              </Paper>
-              
-              {message.sender === 'user' && (
-                <Avatar sx={{ bgcolor: theme.palette.secondary.main }}>
-                  <PersonIcon />
-                </Avatar>
-              )}
+                <SmartToyIcon />
+              </Avatar>
+            )}
+            
+            <Box
+              sx={{
+                maxWidth: '70%',
+                p: 2,
+                borderRadius: 2,
+                bgcolor: message.sender === 'user' ? theme.palette.primary.main : theme.palette.background.paper,
+                color: message.sender === 'user' ? theme.palette.primary.contrastText : theme.palette.text.primary,
+                boxShadow: 1
+              }}
+            >
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                {message.text}
+              </Typography>
+              <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', opacity: 0.7 }}>
+                {formatTimestamp(message.timestamp)}
+              </Typography>
             </Box>
+            
+            {message.sender === 'user' && (
+              <Avatar 
+                sx={{ 
+                  bgcolor: theme.palette.secondary.main,
+                  ml: 1
+                }}
+              >
+                <PersonIcon />
+              </Avatar>
+            )}
           </Box>
         ))}
         
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-            <CircularProgress size={24} />
+        {isTyping && (
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: 7 }}>
+            <CircularProgress size={20} sx={{ mr: 1 }} />
+            <Typography variant="body2" color="textSecondary">
+              Asystent pisze...
+            </Typography>
           </Box>
         )}
-      </Box>
-      
-      {/* Sugestie */}
-      <Box sx={{ p: 1, backgroundColor: theme.palette.grey[100] }}>
-        <Typography variant="caption" color="textSecondary" sx={{ ml: 1, mb: 1, display: 'block' }}>
-          Sugestie:
+        
+        <div ref={messagesEndRef} />
+      </Paper>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+          Sugerowane zapytania:
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           {suggestions.map((suggestion, index) => (
             <Chip
               key={index}
               label={suggestion}
-              size="small"
-              icon={<LightbulbIcon />}
               onClick={() => handleSuggestionClick(suggestion)}
-              sx={{ 
-                backgroundColor: theme.palette.background.paper,
-                '&:hover': {
-                  backgroundColor: theme.palette.primary.light,
-                  color: theme.palette.primary.contrastText
-                }
-              }}
+              icon={<LightbulbIcon />}
+              variant="outlined"
+              color="primary"
+              sx={{ borderRadius: '16px' }}
             />
           ))}
         </Box>
       </Box>
-      
-      <Divider />
-      
-      {/* Pole wprowadzania wiadomości */}
-      <Box sx={{ p: 2, backgroundColor: theme.palette.background.paper, display: 'flex', alignItems: 'center', gap: 1 }}>
+
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <TextField
           fullWidth
           variant="outlined"
-          placeholder="Napisz wiadomość do asystenta AI..."
-          size="small"
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          disabled={loading}
+          placeholder="Napisz wiadomość..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              handleSendMessage();
+            }
+          }}
+          sx={{ mr: 1 }}
         />
         <Button
           variant="contained"
           color="primary"
           endIcon={<SendIcon />}
-          onClick={sendMessage}
-          disabled={!inputMessage.trim() || loading}
+          onClick={handleSendMessage}
+          disabled={newMessage.trim() === ''}
         >
           Wyślij
         </Button>
       </Box>
-    </Paper>
+    </Box>
   );
 };
 
