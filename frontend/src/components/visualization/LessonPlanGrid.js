@@ -8,14 +8,18 @@ import {
   Tooltip, 
   IconButton,
   CircularProgress,
-  useTheme
+  useTheme,
+  Button,
+  Alert,
+  AlertTitle
 } from '@mui/material';
 import { 
   InfoOutlined, 
   Edit, 
   ContentCopy, 
   Print,
-  DownloadOutlined
+  DownloadOutlined,
+  Refresh
 } from '@mui/icons-material';
 import LessonPlanService from '../../services/LessonPlanService';
 import LessonService from '../../services/LessonService';
@@ -30,54 +34,161 @@ const LessonPlanGrid = ({ planId, classId, teacherId, roomId }) => {
   const [timeSlots, setTimeSlots] = useState([]);
   const [planData, setPlanData] = useState(null);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    setRetryCount(prevCount => prevCount + 1);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
         
         // Pobierz dane planu lekcji
         if (planId) {
-          const planResponse = await LessonPlanService.getLessonPlanById(planId);
-          setPlanData(planResponse);
+          try {
+            const planResponse = await LessonPlanService.getLessonPlanById(planId);
+            setPlanData(planResponse);
+          } catch (err) {
+            console.error('Błąd podczas pobierania planu lekcji:', err);
+            if (err.isAccessError) {
+              setError({
+                title: 'Brak dostępu do planu lekcji',
+                message: err.userMessage || 'Nie można załadować planu lekcji. Sprawdź swoje uprawnienia.'
+              });
+              setLoading(false);
+              return;
+            }
+          }
           
-          const lessonsResponse = await LessonService.getLessonsByPlan(planId);
-          setLessons(lessonsResponse);
+          try {
+            const lessonsResponse = await LessonService.getLessonsByPlan(planId);
+            setLessons(lessonsResponse);
+          } catch (err) {
+            console.error('Błąd podczas pobierania lekcji:', err);
+            if (err.isAccessError) {
+              setError({
+                title: 'Brak dostępu do lekcji',
+                message: err.userMessage || 'Nie można załadować lekcji. Sprawdź swoje uprawnienia.'
+              });
+              setLoading(false);
+              return;
+            }
+          }
         } else if (classId) {
-          const plansResponse = await LessonPlanService.getLessonPlansByClass(classId);
-          if (plansResponse && plansResponse.length > 0) {
-            setPlanData(plansResponse[0]);
-            
+          try {
+            const plansResponse = await LessonPlanService.getLessonPlansByClass(classId);
+            if (plansResponse && plansResponse.length > 0) {
+              setPlanData(plansResponse[0]);
+            }
+          } catch (err) {
+            console.error('Błąd podczas pobierania planów lekcji klasy:', err);
+            if (err.isAccessError) {
+              setError({
+                title: 'Brak dostępu do planu klasy',
+                message: err.userMessage || 'Nie można załadować planu klasy. Sprawdź swoje uprawnienia.'
+              });
+              setLoading(false);
+              return;
+            }
+          }
+          
+          try {
             const lessonsResponse = await LessonService.getLessonsByClass(classId);
             setLessons(lessonsResponse);
+          } catch (err) {
+            console.error('Błąd podczas pobierania lekcji klasy:', err);
+            if (err.isAccessError) {
+              setError({
+                title: 'Brak dostępu do lekcji klasy',
+                message: err.userMessage || 'Nie można załadować lekcji klasy. Sprawdź swoje uprawnienia.'
+              });
+              setLoading(false);
+              return;
+            }
           }
         } else if (teacherId) {
-          const plansResponse = await LessonPlanService.getLessonPlansByTeacher(teacherId);
-          if (plansResponse && plansResponse.length > 0) {
-            setPlanData(plansResponse[0]);
-            
+          try {
+            const plansResponse = await LessonPlanService.getLessonPlansByTeacher(teacherId);
+            if (plansResponse && plansResponse.length > 0) {
+              setPlanData(plansResponse[0]);
+            }
+          } catch (err) {
+            console.error('Błąd podczas pobierania planów lekcji nauczyciela:', err);
+            if (err.isAccessError) {
+              setError({
+                title: 'Brak dostępu do planu nauczyciela',
+                message: err.userMessage || 'Nie można załadować planu nauczyciela. Sprawdź swoje uprawnienia.'
+              });
+              setLoading(false);
+              return;
+            }
+          }
+          
+          try {
             const lessonsResponse = await LessonService.getLessonsByTeacher(teacherId);
             setLessons(lessonsResponse);
+          } catch (err) {
+            console.error('Błąd podczas pobierania lekcji nauczyciela:', err);
+            if (err.isAccessError) {
+              setError({
+                title: 'Brak dostępu do lekcji nauczyciela',
+                message: err.userMessage || 'Nie można załadować lekcji nauczyciela. Sprawdź swoje uprawnienia.'
+              });
+              setLoading(false);
+              return;
+            }
           }
         } else if (roomId) {
-          const lessonsResponse = await LessonService.getLessonsByRoom(roomId);
-          setLessons(lessonsResponse);
+          try {
+            const lessonsResponse = await LessonService.getLessonsByRoom(roomId);
+            setLessons(lessonsResponse);
+          } catch (err) {
+            console.error('Błąd podczas pobierania lekcji w sali:', err);
+            if (err.isAccessError) {
+              setError({
+                title: 'Brak dostępu do lekcji w sali',
+                message: err.userMessage || 'Nie można załadować lekcji w sali. Sprawdź swoje uprawnienia.'
+              });
+              setLoading(false);
+              return;
+            }
+          }
         }
         
         // Pobierz przedziały czasowe
-        const timeSlotsResponse = await TimeSlotService.getAllTimeSlots();
-        setTimeSlots(timeSlotsResponse);
+        try {
+          const timeSlotsResponse = await TimeSlotService.getAllTimeSlots();
+          setTimeSlots(timeSlotsResponse);
+        } catch (err) {
+          console.error('Błąd podczas pobierania przedziałów czasowych:', err);
+          if (err.isAccessError || err.isServerError || err.isNetworkError || err.isTimeoutError) {
+            setError({
+              title: 'Błąd podczas ładowania danych',
+              message: err.userMessage || 'Nie można załadować przedziałów czasowych. Spróbuj ponownie później.'
+            });
+            setLoading(false);
+            return;
+          }
+        }
         
         setLoading(false);
       } catch (err) {
-        console.error('Błąd podczas pobierania danych planu lekcji:', err);
-        setError('Wystąpił błąd podczas ładowania planu lekcji. Spróbuj ponownie później.');
+        console.error('Ogólny błąd podczas pobierania danych planu lekcji:', err);
+        setError({
+          title: 'Błąd podczas ładowania danych',
+          message: err.userMessage || 'Wystąpił błąd podczas ładowania danych lekcji. Spróbuj ponownie później.'
+        });
         setLoading(false);
       }
     };
     
     fetchData();
-  }, [planId, classId, teacherId, roomId]);
+  }, [planId, classId, teacherId, roomId, retryCount]);
 
   // Funkcja pomocnicza do organizowania lekcji według dni i przedziałów czasowych
   const organizeByDayAndTime = () => {
@@ -147,7 +258,23 @@ const LessonPlanGrid = ({ planId, classId, teacherId, roomId }) => {
   if (error) {
     return (
       <Box sx={{ p: 2 }}>
-        <Typography color="error">{error}</Typography>
+        <Alert 
+          severity="error" 
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              startIcon={<Refresh />}
+              onClick={handleRetry}
+            >
+              Spróbuj ponownie
+            </Button>
+          }
+          sx={{ mb: 2 }}
+        >
+          <AlertTitle>{error.title || 'Błąd'}</AlertTitle>
+          {error.message}
+        </Alert>
       </Box>
     );
   }
@@ -155,7 +282,10 @@ const LessonPlanGrid = ({ planId, classId, teacherId, roomId }) => {
   if (!organizedLessons) {
     return (
       <Box sx={{ p: 2 }}>
-        <Typography>Brak danych do wyświetlenia planu lekcji.</Typography>
+        <Alert severity="info">
+          <AlertTitle>Brak danych</AlertTitle>
+          Brak danych do wyświetlenia planu lekcji.
+        </Alert>
       </Box>
     );
   }

@@ -9,6 +9,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Dodanie timeout dla zapytań
+  timeout: 10000,
 });
 
 // Interceptor do obsługi błędów
@@ -21,9 +23,53 @@ api.interceptors.response.use(
       console.error('Błąd autoryzacji:', error);
     }
     
+    // Obsługa błędów dostępu (403)
+    if (error.response && error.response.status === 403) {
+      console.error('Błąd dostępu (403):', error);
+      // Możemy tutaj dodać specyficzną obsługę dla błędów 403
+      return Promise.reject({
+        ...error,
+        isAccessError: true,
+        userMessage: 'Brak dostępu do zasobu. Sprawdź swoje uprawnienia lub skontaktuj się z administratorem.'
+      });
+    }
+    
+    // Obsługa błędów serwera (500)
+    if (error.response && error.response.status >= 500) {
+      console.error('Błąd serwera:', error);
+      return Promise.reject({
+        ...error,
+        isServerError: true,
+        userMessage: 'Wystąpił błąd serwera. Spróbuj ponownie później.'
+      });
+    }
+    
+    // Obsługa błędów sieci (np. brak połączenia)
+    if (error.message === 'Network Error') {
+      console.error('Błąd sieci:', error);
+      return Promise.reject({
+        ...error,
+        isNetworkError: true,
+        userMessage: 'Brak połączenia z serwerem. Sprawdź swoje połączenie internetowe.'
+      });
+    }
+    
+    // Obsługa timeout
+    if (error.code === 'ECONNABORTED') {
+      console.error('Timeout zapytania:', error);
+      return Promise.reject({
+        ...error,
+        isTimeoutError: true,
+        userMessage: 'Serwer nie odpowiada. Spróbuj ponownie później.'
+      });
+    }
+    
     // Obsługa innych błędów
     console.error('Błąd API:', error);
-    return Promise.reject(error);
+    return Promise.reject({
+      ...error,
+      userMessage: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.'
+    });
   }
 );
 
