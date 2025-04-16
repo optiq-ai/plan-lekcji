@@ -8,7 +8,7 @@ import Classes from './pages/Classes';
 import Rooms from './pages/Rooms';
 import Subjects from './pages/Subjects';
 import Settings from './pages/Settings';
-import Layout from './components/Layout';
+import AppLayout from './components/layout/AppLayout';
 import PlanEditor from './pages/PlanEditor';
 import PlanAnalytics from './pages/PlanAnalytics';
 import Substitutions from './pages/Substitutions';
@@ -20,7 +20,7 @@ function App() {
     <Box sx={{ display: 'flex', height: '100vh' }}>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Layout />}>
+        <Route path="/" element={<AppLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="lesson-plans" element={<LessonPlans />} />
           <Route path="lesson-plans/:id" element={<PlanEditor />} />
