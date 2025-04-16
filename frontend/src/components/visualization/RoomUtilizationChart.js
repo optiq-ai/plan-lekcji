@@ -1,324 +1,557 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
-  Paper, 
   Typography, 
+  Paper, 
   Grid, 
-  Divider, 
-  useTheme,
-  CircularProgress,
+  Card, 
+  CardContent,
+  Button,
+  Tooltip,
+  IconButton,
+  Chip,
+  Divider,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
-  Tooltip
+  MenuItem
 } from '@mui/material';
-import RoomService from '../../services/RoomService';
-import LessonService from '../../services/LessonService';
+import { useTheme } from '@mui/material/styles';
+import { 
+  PieChart, 
+  Pie, 
+  Cell, 
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  Legend
+} from 'recharts';
+import DownloadIcon from '@mui/icons-material/Download';
+import PrintIcon from '@mui/icons-material/Print';
+import InfoIcon from '@mui/icons-material/Info';
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
 
-const RoomUtilizationChart = ({ schoolId }) => {
+/**
+ * Komponent wizualizacji wykorzystania sal lekcyjnych
+ * Pokazuje statystyki zajętości, wyposażenie i rekomendacje optymalizacji
+ */
+const RoomUtilizationChart = () => {
   const theme = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [rooms, setRooms] = useState([]);
-  const [lessons, setLessons] = useState([]);
-  const [error, setError] = useState(null);
-  const [selectedView, setSelectedView] = useState('daily'); // 'daily' lub 'hourly'
+  const [floor, setFloor] = useState('Wszystkie');
+  const [roomType, setRoomType] = useState('Wszystkie');
+  const [view, setView] = useState('Tygodniowy');
+  const [classFilter, setClassFilter] = useState('Wszystkie');
+  const [aiFilter, setAiFilter] = useState(false);
+  const [utilizationData, setUtilizationData] = useState([]);
+  const [selectedRoom, setSelectedRoom] = useState(null);
 
-  const daysOfWeek = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek'];
-  const hoursOfDay = Array.from({ length: 10 }, (_, i) => i + 1); // Godziny lekcyjne 1-10
-
+  // Symulacja danych wykorzystania sal
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Pobierz sale
-        let roomsResponse;
-        if (schoolId) {
-          roomsResponse = await RoomService.getRoomsBySchool(schoolId);
-        } else {
-          roomsResponse = await RoomService.getAllRooms();
-        }
-        setRooms(roomsResponse);
-        
-        // Pobierz wszystkie lekcje dla tych sal
-        const lessonsPromises = roomsResponse.map(room => 
-          LessonService.getLessonsByRoom(room.id)
-        );
-        
-        const lessonsResults = await Promise.all(lessonsPromises);
-        const allLessons = lessonsResults.flat();
-        setLessons(allLessons);
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Błąd podczas pobierania danych wykorzystania sal:', err);
-        setError('Wystąpił błąd podczas ładowania danych. Spróbuj ponownie później.');
-        setLoading(false);
+    // W rzeczywistej aplikacji dane byłyby pobierane z API
+    const mockUtilizationData = [
+      { 
+        id: 101, 
+        name: 'Sala 101 (Informatyczna)', 
+        type: 'Informatyczna',
+        floor: 1,
+        utilizationRate: 0.85,
+        partialUtilizationRate: 0.10,
+        freeRate: 0.05,
+        classes: ['1A', '2B', '3A', '3C'],
+        equipment: ['30 komputerów', 'Rzutnik', 'Tablica interaktywna'],
+        nextAvailable: '14:35-15:20'
+      },
+      { 
+        id: 102, 
+        name: 'Sala 102 (Językowa)', 
+        type: 'Językowa',
+        floor: 1,
+        utilizationRate: 0.45,
+        partialUtilizationRate: 0.30,
+        freeRate: 0.25,
+        classes: ['1A', '1B', '2A', '2C'],
+        equipment: ['Sprzęt audio', 'Rzutnik', 'Tablice językowe'],
+        nextAvailable: '11:50-12:35'
+      },
+      { 
+        id: 103, 
+        name: 'Sala 103 (Ogólna)', 
+        type: 'Ogólna',
+        floor: 1,
+        utilizationRate: 0.60,
+        partialUtilizationRate: 0.20,
+        freeRate: 0.20,
+        classes: ['1A', '1B', '1C', '2A'],
+        equipment: ['30 ławek', 'Rzutnik', 'Tablica'],
+        nextAvailable: '10:45-11:30'
+      },
+      { 
+        id: 104, 
+        name: 'Sala 104 (Fizyczna)', 
+        type: 'Specjalistyczna',
+        floor: 1,
+        utilizationRate: 0.40,
+        partialUtilizationRate: 0.15,
+        freeRate: 0.45,
+        classes: ['2A', '2B', '3A', '3B'],
+        equipment: ['Sprzęt laboratoryjny', 'Rzutnik', 'Stanowiska doświadczalne'],
+        nextAvailable: '8:55-9:40'
+      },
+      { 
+        id: 105, 
+        name: 'Sala 105 (Ogólna)', 
+        type: 'Ogólna',
+        floor: 1,
+        utilizationRate: 0.50,
+        partialUtilizationRate: 0.25,
+        freeRate: 0.25,
+        classes: ['1A', '2B', '3A', '3C'],
+        equipment: ['30 ławek', 'Rzutnik', 'Tablica'],
+        nextAvailable: 'Wolna teraz'
+      },
+      { 
+        id: 106, 
+        name: 'Sala 106 (Chemiczna)', 
+        type: 'Specjalistyczna',
+        floor: 1,
+        utilizationRate: 0.70,
+        partialUtilizationRate: 0.20,
+        freeRate: 0.10,
+        classes: ['1C', '2A', '2C', '3B'],
+        equipment: ['Dygestorium', 'Sprzęt laboratoryjny', 'Rzutnik'],
+        nextAvailable: '13:40-14:25'
+      },
+      { 
+        id: 107, 
+        name: 'Sala 107 (Ogólna)', 
+        type: 'Ogólna',
+        floor: 1,
+        utilizationRate: 0.55,
+        partialUtilizationRate: 0.25,
+        freeRate: 0.20,
+        classes: ['1B', '2B', '3C'],
+        equipment: ['30 ławek', 'Rzutnik', 'Tablica'],
+        nextAvailable: '12:45-13:30'
+      },
+      { 
+        id: 108, 
+        name: 'Sala 108 (Biologiczna)', 
+        type: 'Specjalistyczna',
+        floor: 1,
+        utilizationRate: 0.60,
+        partialUtilizationRate: 0.20,
+        freeRate: 0.20,
+        classes: ['1A', '1C', '2A', '3B'],
+        equipment: ['Mikroskopy', 'Modele anatomiczne', 'Rzutnik'],
+        nextAvailable: '9:50-10:35'
       }
-    };
-    
-    fetchData();
-  }, [schoolId]);
+    ];
 
-  // Funkcja do obliczania wykorzystania sal
-  const calculateRoomUtilization = () => {
-    const roomUtilization = {};
+    // Filtrowanie danych na podstawie wybranych filtrów
+    let filteredData = [...mockUtilizationData];
     
-    // Inicjalizacja struktury danych
-    rooms.forEach(room => {
-      roomUtilization[room.id] = {
-        room: room,
-        dailyUsage: Array(5).fill(0), // Wykorzystanie dzienne (pon-pt)
-        hourlyUsage: Array.from({ length: 5 }, () => Array(10).fill(0)), // Wykorzystanie godzinowe
-        totalUsage: 0,
-        maxCapacity: 5 * 10 // Maksymalna liczba lekcji w tygodniu (5 dni * 10 godzin)
-      };
-    });
+    if (floor !== 'Wszystkie') {
+      filteredData = filteredData.filter(room => room.floor === parseInt(floor));
+    }
     
-    // Obliczanie wykorzystania na podstawie lekcji
-    lessons.forEach(lesson => {
-      const roomId = lesson.roomId;
-      const dayIndex = lesson.dayOfWeek - 1; // 1-5 -> 0-4
-      const hourIndex = lesson.timeSlot?.number - 1 || 0; // Zakładamy, że timeSlot.number to numer lekcji (1-10)
-      
-      if (roomUtilization[roomId]) {
-        // Zwiększ wykorzystanie dzienne
-        roomUtilization[roomId].dailyUsage[dayIndex]++;
-        
-        // Zwiększ wykorzystanie godzinowe
-        if (hourIndex >= 0 && hourIndex < 10) {
-          roomUtilization[roomId].hourlyUsage[dayIndex][hourIndex] = 1; // Sala jest zajęta w tej godzinie
-        }
-        
-        // Zwiększ całkowite wykorzystanie
-        roomUtilization[roomId].totalUsage++;
-      }
-    });
+    if (roomType !== 'Wszystkie') {
+      filteredData = filteredData.filter(room => room.type === roomType);
+    }
     
-    // Oblicz procentowe wykorzystanie
-    Object.values(roomUtilization).forEach(data => {
-      data.utilizationPercentage = (data.totalUsage / data.maxCapacity) * 100;
-    });
+    if (classFilter !== 'Wszystkie') {
+      filteredData = filteredData.filter(room => room.classes.includes(classFilter));
+    }
     
-    return Object.values(roomUtilization);
+    if (aiFilter) {
+      // Symulacja filtrowania sal z potencjałem optymalizacji
+      filteredData = filteredData.filter(room => 
+        room.utilizationRate < 0.7 || room.utilizationRate > 0.9
+      );
+    }
+
+    setUtilizationData(filteredData);
+  }, [floor, roomType, view, classFilter, aiFilter]);
+
+  // Dane dla wykresu kołowego
+  const getPieChartData = () => {
+    // Obliczanie średnich wartości dla wszystkich sal
+    const totalRooms = utilizationData.length;
+    if (totalRooms === 0) return [];
+    
+    const avgUtilization = utilizationData.reduce((sum, room) => sum + room.utilizationRate, 0) / totalRooms;
+    const avgPartialUtilization = utilizationData.reduce((sum, room) => sum + room.partialUtilizationRate, 0) / totalRooms;
+    const avgFree = utilizationData.reduce((sum, room) => sum + room.freeRate, 0) / totalRooms;
+    
+    return [
+      { name: 'W pełni wykorzystane', value: Math.round(avgUtilization * 100) },
+      { name: 'Częściowo wykorzystane', value: Math.round(avgPartialUtilization * 100) },
+      { name: 'Niewykorzystane', value: Math.round(avgFree * 100) },
+    ];
   };
 
-  const roomUtilizationData = calculateRoomUtilization();
-  
-  // Sortowanie sal według procentowego wykorzystania (malejąco)
-  const sortedRoomUtilization = [...roomUtilizationData].sort((a, b) => 
-    b.utilizationPercentage - a.utilizationPercentage
-  );
+  // Kolory dla wykresu kołowego
+  const COLORS = [theme.palette.error.main, theme.palette.warning.light, theme.palette.success.light];
 
-  // Funkcja do określania koloru paska na podstawie wykorzystania
-  const getUtilizationColor = (percentage) => {
-    if (percentage < 30) return theme.palette.success.main;
-    if (percentage < 70) return theme.palette.warning.main;
-    return theme.palette.error.main;
+  // Obsługa kliknięcia na salę
+  const handleRoomClick = (room) => {
+    setSelectedRoom(room);
   };
-
-  const handleViewChange = (event) => {
-    setSelectedView(event.target.value);
-  };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
-  }
 
   return (
-    <Paper elevation={3} sx={{ p: 2, overflow: 'auto' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
-        <Typography variant="h6">
-          Wykorzystanie sal lekcyjnych
-        </Typography>
-        <FormControl sx={{ minWidth: 150 }} size="small">
-          <InputLabel id="view-select-label">Widok</InputLabel>
-          <Select
-            labelId="view-select-label"
-            id="view-select"
-            value={selectedView}
-            label="Widok"
-            onChange={handleViewChange}
-          >
-            <MenuItem value="daily">Dzienny</MenuItem>
-            <MenuItem value="hourly">Godzinowy</MenuItem>
-          </Select>
-        </FormControl>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5">Zaawansowana analiza wykorzystania sal</Typography>
+        <Box>
+          <Tooltip title="Wydrukuj raport">
+            <IconButton>
+              <PrintIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Eksportuj do PDF">
+            <IconButton>
+              <DownloadIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
-      
-      <Divider sx={{ mb: 2 }} />
-      
-      {selectedView === 'daily' ? (
-        <Grid container spacing={2}>
-          {sortedRoomUtilization.map((data) => (
-            <Grid item xs={12} key={data.room.id}>
-              <Box sx={{ mb: 1 }}>
-                <Typography variant="subtitle2">
-                  {`${data.room.name} (${data.room.capacity} miejsc)`}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box
-                    sx={{
-                      width: '100%',
-                      mr: 1,
-                      height: 20,
-                      backgroundColor: theme.palette.grey[200],
-                      borderRadius: 1,
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <Tooltip title={`${Math.round(data.utilizationPercentage)}% wykorzystania`}>
-                      <Box
-                        sx={{
-                          width: `${data.utilizationPercentage}%`,
-                          height: '100%',
-                          backgroundColor: getUtilizationColor(data.utilizationPercentage),
-                          position: 'absolute',
-                          left: 0,
-                          top: 0
-                        }}
-                      />
-                    </Tooltip>
+
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Piętro</InputLabel>
+            <Select
+              value={floor}
+              label="Piętro"
+              onChange={(e) => setFloor(e.target.value)}
+            >
+              <MenuItem value="Wszystkie">Wszystkie</MenuItem>
+              <MenuItem value="0">Parter</MenuItem>
+              <MenuItem value="1">Piętro 1</MenuItem>
+              <MenuItem value="2">Piętro 2</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Typ sali</InputLabel>
+            <Select
+              value={roomType}
+              label="Typ sali"
+              onChange={(e) => setRoomType(e.target.value)}
+            >
+              <MenuItem value="Wszystkie">Wszystkie</MenuItem>
+              <MenuItem value="Ogólna">Ogólne</MenuItem>
+              <MenuItem value="Informatyczna">Informatyczne</MenuItem>
+              <MenuItem value="Językowa">Językowe</MenuItem>
+              <MenuItem value="Specjalistyczna">Specjalistyczne</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Widok</InputLabel>
+            <Select
+              value={view}
+              label="Widok"
+              onChange={(e) => setView(e.target.value)}
+            >
+              <MenuItem value="Tygodniowy">Tygodniowy</MenuItem>
+              <MenuItem value="Dzienny">Dzienny</MenuItem>
+              <MenuItem value="Miesięczny">Miesięczny</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Klasa</InputLabel>
+            <Select
+              value={classFilter}
+              label="Klasa"
+              onChange={(e) => setClassFilter(e.target.value)}
+            >
+              <MenuItem value="Wszystkie">Wszystkie</MenuItem>
+              <MenuItem value="1A">1A</MenuItem>
+              <MenuItem value="1B">1B</MenuItem>
+              <MenuItem value="1C">1C</MenuItem>
+              <MenuItem value="2A">2A</MenuItem>
+              <MenuItem value="2B">2B</MenuItem>
+              <MenuItem value="2C">2C</MenuItem>
+              <MenuItem value="3A">3A</MenuItem>
+              <MenuItem value="3B">3B</MenuItem>
+              <MenuItem value="3C">3C</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <Button 
+            variant={aiFilter ? "contained" : "outlined"}
+            color="primary"
+            startIcon={<InfoIcon />}
+            onClick={() => setAiFilter(!aiFilter)}
+            fullWidth
+            sx={{ height: '100%' }}
+          >
+            AI: Pokazuje sale z potencjałem optymalizacji
+          </Button>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={8}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Heatmapa wykorzystania sal lekcyjnych
+              </Typography>
+              
+              <Box sx={{ overflowX: 'auto' }}>
+                <Box sx={{ minWidth: 600 }}>
+                  <Box sx={{ display: 'flex', mb: 1 }}>
+                    <Box sx={{ width: 200, fontWeight: 'bold' }}>
+                      <Typography variant="body2">Sale / Godziny</Typography>
+                    </Box>
+                    <Box sx={{ flex: 1, display: 'flex' }}>
+                      <Typography variant="caption" sx={{ flex: 1, textAlign: 'center' }}>8:00-9:40</Typography>
+                      <Typography variant="caption" sx={{ flex: 1, textAlign: 'center' }}>9:50-10:35</Typography>
+                      <Typography variant="caption" sx={{ flex: 1, textAlign: 'center' }}>10:45-11:30</Typography>
+                      <Typography variant="caption" sx={{ flex: 1, textAlign: 'center' }}>11:50-12:35</Typography>
+                      <Typography variant="caption" sx={{ flex: 1, textAlign: 'center' }}>12:45-13:30</Typography>
+                      <Typography variant="caption" sx={{ flex: 1, textAlign: 'center' }}>13:40-14:25</Typography>
+                      <Typography variant="caption" sx={{ flex: 1, textAlign: 'center' }}>14:35-15:20</Typography>
+                      <Typography variant="caption" sx={{ flex: 1, textAlign: 'center' }}>15:30-17:10</Typography>
+                    </Box>
                   </Box>
-                  <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'right' }}>
-                    {`${Math.round(data.utilizationPercentage)}%`}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', mt: 1 }}>
-                  {daysOfWeek.map((day, index) => (
-                    <Tooltip key={index} title={`${day}: ${data.dailyUsage[index]} lekcji`}>
-                      <Box
-                        sx={{
-                          flex: 1,
-                          height: 30,
-                          backgroundColor: theme.palette.grey[100],
-                          borderRadius: 1,
-                          mr: 0.5,
-                          position: 'relative',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: '100%',
-                            height: `${(data.dailyUsage[index] / 10) * 100}%`,
-                            backgroundColor: theme.palette.primary[300],
-                            position: 'absolute',
-                            left: 0,
-                            bottom: 0
-                          }}
-                        />
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)'
-                          }}
-                        >
-                          <Typography variant="caption" fontWeight="bold">
-                            {data.dailyUsage[index]}
-                          </Typography>
-                        </Box>
+                  
+                  {utilizationData.map((room) => (
+                    <Box 
+                      key={room.id} 
+                      sx={{ 
+                        display: 'flex', 
+                        mb: 1, 
+                        cursor: 'pointer',
+                        '&:hover': {
+                          bgcolor: theme.palette.action.hover,
+                          borderRadius: 1
+                        }
+                      }}
+                      onClick={() => handleRoomClick(room)}
+                    >
+                      <Box sx={{ width: 200, display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body2">{room.name}</Typography>
                       </Box>
-                    </Tooltip>
+                      <Box sx={{ flex: 1, display: 'flex' }}>
+                        {/* Symulacja zajętości sal w różnych godzinach */}
+                        <Box sx={{ 
+                          flex: 1, 
+                          bgcolor: Math.random() > 0.5 ? theme.palette.error.main : 
+                                  (Math.random() > 0.5 ? theme.palette.warning.light : theme.palette.success.light), 
+                          height: 30, 
+                          mx: 0.5,
+                          borderRadius: 1
+                        }}></Box>
+                        <Box sx={{ 
+                          flex: 1, 
+                          bgcolor: Math.random() > 0.5 ? theme.palette.error.main : 
+                                  (Math.random() > 0.5 ? theme.palette.warning.light : theme.palette.success.light), 
+                          height: 30, 
+                          mx: 0.5,
+                          borderRadius: 1
+                        }}></Box>
+                        <Box sx={{ 
+                          flex: 1, 
+                          bgcolor: Math.random() > 0.5 ? theme.palette.error.main : 
+                                  (Math.random() > 0.5 ? theme.palette.warning.light : theme.palette.success.light), 
+                          height: 30, 
+                          mx: 0.5,
+                          borderRadius: 1
+                        }}></Box>
+                        <Box sx={{ 
+                          flex: 1, 
+                          bgcolor: Math.random() > 0.5 ? theme.palette.error.main : 
+                                  (Math.random() > 0.5 ? theme.palette.warning.light : theme.palette.success.light), 
+                          height: 30, 
+                          mx: 0.5,
+                          borderRadius: 1
+                        }}></Box>
+                        <Box sx={{ 
+                          flex: 1, 
+                          bgcolor: Math.random() > 0.5 ? theme.palette.error.main : 
+                                  (Math.random() > 0.5 ? theme.palette.warning.light : theme.palette.success.light), 
+                          height: 30, 
+                          mx: 0.5,
+                          borderRadius: 1
+                        }}></Box>
+                        <Box sx={{ 
+                          flex: 1, 
+                          bgcolor: Math.random() > 0.5 ? theme.palette.error.main : 
+                                  (Math.random() > 0.5 ? theme.palette.warning.light : theme.palette.success.light), 
+                          height: 30, 
+                          mx: 0.5,
+                          borderRadius: 1
+                        }}></Box>
+                        <Box sx={{ 
+                          flex: 1, 
+                          bgcolor: Math.random() > 0.5 ? theme.palette.error.main : 
+                                  (Math.random() > 0.5 ? theme.palette.warning.light : theme.palette.success.light), 
+                          height: 30, 
+                          mx: 0.5,
+                          borderRadius: 1
+                        }}></Box>
+                        <Box sx={{ 
+                          flex: 1, 
+                          bgcolor: Math.random() > 0.5 ? theme.palette.error.main : 
+                                  (Math.random() > 0.5 ? theme.palette.warning.light : theme.palette.success.light), 
+                          height: 30, 
+                          mx: 0.5,
+                          borderRadius: 1
+                        }}></Box>
+                      </Box>
+                    </Box>
                   ))}
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mx: 2 }}>
+                      <Box sx={{ width: 16, height: 16, bgcolor: theme.palette.error.main, mr: 0.5, borderRadius: 0.5 }}></Box>
+                      <Typography variant="caption">Zajęta (100%)</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mx: 2 }}>
+                      <Box sx={{ width: 16, height: 16, bgcolor: theme.palette.warning.light, mr: 0.5, borderRadius: 0.5 }}></Box>
+                      <Typography variant="caption">Częściowo zajęta (50%)</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mx: 2 }}>
+                      <Box sx={{ width: 16, height: 16, bgcolor: theme.palette.success.light, mr: 0.5, borderRadius: 0.5 }}></Box>
+                      <Typography variant="caption">Wolna (0%)</Typography>
+                    </Box>
+                  </Box>
                 </Box>
               </Box>
-              <Divider sx={{ mt: 1, mb: 1 }} />
-            </Grid>
-          ))}
+            </CardContent>
+          </Card>
         </Grid>
-      ) : (
-        <Grid container spacing={1}>
-          {/* Nagłówek z godzinami */}
-          <Grid item xs={3}>
-            <Box sx={{ height: 40 }}></Box>
-          </Grid>
-          {hoursOfDay.map((hour) => (
-            <Grid item xs key={hour}>
-              <Paper 
-                elevation={0} 
-                sx={{ 
-                  p: 1, 
-                  textAlign: 'center', 
-                  backgroundColor: theme.palette.primary.main,
-                  color: theme.palette.primary.contrastText,
-                  height: 40,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <Typography variant="subtitle2" fontWeight="bold">{hour}</Typography>
-              </Paper>
-            </Grid>
-          ))}
-          
-          {/* Wiersze z salami i dniami */}
-          {sortedRoomUtilization.slice(0, 10).map((data) => (
-            daysOfWeek.map((day, dayIndex) => (
-              <React.Fragment key={`${data.room.id}-${dayIndex}`}>
-                <Grid item xs={3}>
-                  <Paper 
-                    elevation={0} 
-                    sx={{ 
-                      p: 1, 
-                      backgroundColor: dayIndex === 0 ? theme.palette.secondary.main : theme.palette.secondary.light,
-                      color: dayIndex === 0 ? theme.palette.secondary.contrastText : theme.palette.text.primary,
-                      height: 40,
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Typography variant="body2" noWrap>
-                      {dayIndex === 0 ? data.room.name : day}
+
+        <Grid item xs={12} md={4}>
+          <Grid container spacing={3} direction="column">
+            <Grid item>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Analityka wykorzystania
+                  </Typography>
+                  
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Średnie wykorzystanie sal
+                  </Typography>
+                  
+                  <Box sx={{ height: 200 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={getPieChartData()}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                          label={({name, value}) => `${name}: ${value}%`}
+                        >
+                          {getPieChartData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Box>
+                  
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" fontWeight="bold">
+                      Optymalizacja AI
                     </Typography>
-                  </Paper>
-                </Grid>
-                
-                {hoursOfDay.map((hour, hourIndex) => (
-                  <Grid item xs key={`${data.room.id}-${dayIndex}-${hourIndex}`}>
-                    <Paper 
-                      elevation={1} 
-                      sx={{ 
-                        height: 40,
-                        backgroundColor: data.hourlyUsage[dayIndex][hourIndex] 
-                          ? theme.palette.primary.main 
-                          : theme.palette.grey[100],
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
+                    <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                      Wskaźnik efektywności: <Chip label="73%" color="primary" size="small" sx={{ ml: 1 }} />
+                    </Typography>
+                    <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                      Potencjał optymalizacji: <Chip label="18%" color="warning" size="small" sx={{ ml: 1 }} />
+                    </Typography>
+                    <Button 
+                      variant="contained" 
+                      color="primary" 
+                      fullWidth 
+                      sx={{ mt: 2 }}
                     >
-                      {data.hourlyUsage[dayIndex][hourIndex] > 0 && (
-                        <Typography variant="body2" fontWeight="bold" color="white">
-                          ✓
+                      Generuj raport szczegółowy
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item>
+              <Card>
+                <CardContent>
+                  {selectedRoom ? (
+                    <>
+                      <Typography variant="h6" sx={{ mb: 1 }}>
+                        {selectedRoom.name} - szczegóły
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Typography variant="body2">
+                          Pojemność: 30 osób • Powierzchnia: 48m²
                         </Typography>
-                      )}
-                    </Paper>
-                  </Grid>
-                ))}
-              </React.Fragment>
-            ))
-          ))}
+                        <Typography variant="body2">
+                          Wyposażenie: {selectedRoom.equipment.join(', ')}
+                        </Typography>
+                        <Typography variant="body2">
+                          Średnie wykorzystanie: {Math.round(selectedRoom.utilizationRate * 100)}% • Klasy korzystające: {selectedRoom.classes.join(', ')}
+                        </Typography>
+                        
+                        <Box sx={{ 
+                          mt: 1, 
+                          p: 1, 
+                          bgcolor: theme.palette.success.light, 
+                          borderRadius: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
+                          <Box>
+                            <Typography variant="body2" fontWeight="bold">
+                              Aktualnie: Wolna
+                            </Typography>
+                            <Typography variant="caption">
+                              Najbliższe zajęcia: 10:45 - Fizyka
+                            </Typography>
+                            <Typography variant="caption" display="block">
+                              Dostępna do szybkiej rezerwacji
+                            </Typography>
+                          </Box>
+                          <Button 
+                            variant="contained" 
+                            size="small" 
+                            color="primary"
+                          >
+                            Rezerwuj
+                          </Button>
+                        </Box>
+                      </Box>
+                    </>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
+                      <MeetingRoomIcon sx={{ fontSize: 48, color: theme.palette.text.secondary, mb: 1 }} />
+                      <Typography variant="body2" color="textSecondary">
+                        Wybierz salę z listy, aby zobaczyć szczegóły
+                      </Typography>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
         </Grid>
-      )}
-    </Paper>
+      </Grid>
+    </Box>
   );
 };
 
