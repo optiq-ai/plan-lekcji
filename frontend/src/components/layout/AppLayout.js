@@ -1,432 +1,392 @@
 import React, { useState } from 'react';
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Drawer,
-  AppBar,
-  Toolbar,
-  List,
-  Typography,
-  Divider,
-  IconButton,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
+import { 
+  Box, 
+  Drawer, 
+  AppBar, 
+  Toolbar, 
+  List, 
+  Typography, 
+  Divider, 
+  IconButton, 
+  ListItem, 
+  ListItemIcon, 
   ListItemText,
+  Container,
+  Paper,
+  Tooltip,
   Avatar,
+  Badge,
   Menu,
   MenuItem,
-  Tooltip,
-  Badge,
+  Button,
   useTheme
 } from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  CalendarMonth as CalendarIcon,
-  People as PeopleIcon,
-  School as SchoolIcon,
-  MeetingRoom as RoomIcon,
-  Book as BookIcon,
-  SwapHoriz as SwapIcon,
-  Settings as SettingsIcon,
-  Notifications as NotificationsIcon,
-  AccountCircle,
-  Brightness4 as DarkModeIcon,
-  Brightness7 as LightModeIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  Sync as SyncIcon
-} from '@mui/icons-material';
-import { alpha } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
+import MenuIcon from '@mui/icons-material/Menu';
+import SettingsIcon from '@mui/icons-material/Settings';
+import TuneIcon from '@mui/icons-material/Tune';
+import ClassIcon from '@mui/icons-material/Class';
+import PersonIcon from '@mui/icons-material/Person';
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import HelpIcon from '@mui/icons-material/Help';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import SyncIcon from '@mui/icons-material/Sync';
+import PaletteIcon from '@mui/icons-material/Palette';
+import { useNavigate, Routes, Route } from 'react-router-dom';
 import { usePerformance } from '../../context/PerformanceContext';
 
+// Import stron
+import Login from '../../pages/Login';
+import NotFound from '../../pages/NotFound';
+import PlanEditor from '../../pages/PlanEditor';
+import PlanAnalytics from '../../pages/PlanAnalytics';
+import Settings from '../../pages/Settings';
+import Integrations from '../../pages/Integrations';
+
+// Szerokość szuflady nawigacyjnej
 const drawerWidth = 240;
 
+// Stylizowany AppBar z przesunięciem dla otwartej szuflady
+const StyledAppBar = styled(AppBar, {
+  shouldForwardProp: (prop) => prop !== 'open',
+})(({ theme, open }) => ({
+  zIndex: theme.zIndex.drawer + 1,
+  transition: theme.transitions.create(['width', 'margin'], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  ...(open && {
+    marginLeft: drawerWidth,
+    width: `calc(100% - ${drawerWidth}px)`,
+    transition: theme.transitions.create(['width', 'margin'], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  }),
+  backgroundColor: '#3f51b5',
+}));
+
+// Stylizowana szuflada nawigacyjna
+const StyledDrawer = styled(Drawer, {
+  shouldForwardProp: (prop) => prop !== 'open',
+})(({ theme, open }) => ({
+  '& .MuiDrawer-paper': {
+    position: 'relative',
+    whiteSpace: 'nowrap',
+    width: drawerWidth,
+    transition: theme.transitions.create('width', {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    boxSizing: 'border-box',
+    ...(!open && {
+      overflowX: 'hidden',
+      transition: theme.transitions.create('width', {
+        easing: theme.transitions.easing.sharp,
+        duration: theme.transitions.duration.leavingScreen,
+      }),
+      width: theme.spacing(7),
+      [theme.breakpoints.up('sm')]: {
+        width: theme.spacing(9),
+      },
+    }),
+    background: '#f5f5f5',
+    borderRight: '1px solid rgba(0, 0, 0, 0.08)',
+  },
+}));
+
+// Stylizowany pasek narzędzi
+const StyledToolbar = styled(Toolbar)(({ theme }) => ({
+  paddingRight: 24,
+}));
+
+// Stylizowany kontener główny
+const StyledMainContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(4),
+  padding: theme.spacing(3),
+  backgroundColor: '#f9f9f9',
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
+}));
+
+// Główny komponent układu aplikacji
 const AppLayout = () => {
   const theme = useTheme();
-  const location = useLocation();
   const navigate = useNavigate();
-  const { performanceMode } = usePerformance();
-  
   const [open, setOpen] = useState(true);
-  const [anchorElUser, setAnchorElUser] = useState(null);
-  const [anchorElNotifications, setAnchorElNotifications] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
+  const [activeItem, setActiveItem] = useState('konfiguracja');
 
-  const handleDrawerToggle = () => {
+  // Obsługa otwierania/zamykania szuflady
+  const toggleDrawer = () => {
     setOpen(!open);
   };
 
-  const handleOpenUserMenu = (event) => {
-    setAnchorElUser(event.currentTarget);
+  // Obsługa menu użytkownika
+  const handleUserMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
   };
 
-  const handleCloseUserMenu = () => {
-    setAnchorElUser(null);
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
   };
 
-  const handleOpenNotificationsMenu = (event) => {
-    setAnchorElNotifications(event.currentTarget);
+  // Obsługa menu powiadomień
+  const handleNotificationMenuOpen = (event) => {
+    setNotificationAnchorEl(event.currentTarget);
   };
 
-  const handleCloseNotificationsMenu = () => {
-    setAnchorElNotifications(null);
+  const handleNotificationMenuClose = () => {
+    setNotificationAnchorEl(null);
   };
 
+  // Obsługa nawigacji
+  const handleNavigation = (path, item) => {
+    navigate(path);
+    setActiveItem(item);
+  };
+
+  // Elementy menu nawigacyjnego - zgodne ze zrzutami ekranu
   const menuItems = [
-    { text: 'Pulpit', icon: <DashboardIcon />, path: '/' },
-    { text: 'Plany lekcji', icon: <CalendarIcon />, path: '/lesson-plans' },
-    { text: 'Nauczyciele', icon: <PeopleIcon />, path: '/teachers' },
-    { text: 'Klasy', icon: <SchoolIcon />, path: '/classes' },
-    { text: 'Sale', icon: <RoomIcon />, path: '/rooms' },
-    { text: 'Przedmioty', icon: <BookIcon />, path: '/subjects' },
-    { text: 'Zastępstwa', icon: <SwapIcon />, path: '/substitutions' },
-    { text: 'Integracje', icon: <SyncIcon />, path: '/integrations' },
-    { text: 'Ustawienia', icon: <SettingsIcon />, path: '/settings' },
+    { text: 'Konfiguracja', icon: <TuneIcon />, path: '/settings', id: 'konfiguracja' },
+    { text: 'Plan klas', icon: <ClassIcon />, path: '/plan-klas', id: 'plan-klas' },
+    { text: 'Plan nauczycieli', icon: <PersonIcon />, path: '/plan-nauczycieli', id: 'plan-nauczycieli' },
+    { text: 'Sale lekcyjne', icon: <MeetingRoomIcon />, path: '/sale-lekcyjne', id: 'sale' },
+    { text: 'Asystent AI', icon: <SmartToyIcon />, path: '/asystent-ai', id: 'asystent' },
+    { text: 'Statystyki', icon: <BarChartIcon />, path: '/statystyki', id: 'statystyki' },
+    { text: 'Personalizacja', icon: <PaletteIcon />, path: '/personalizacja', id: 'personalizacja' },
+    { text: 'Ustawienia', icon: <SettingsIcon />, path: '/ustawienia', id: 'ustawienia' },
   ];
 
-  const isActive = (path) => {
-    if (path === '/' && location.pathname === '/') return true;
-    if (path !== '/' && location.pathname.startsWith(path)) return true;
-    return false;
-  };
-
   return (
-    <Box sx={{ display: 'flex' }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${open ? drawerWidth : 0}px)` },
-          ml: { sm: `${open ? drawerWidth : 0}px` },
-          transition: theme.transitions.create(['margin', 'width'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-          backgroundImage: 'linear-gradient(90deg, #0a1929 0%, #132f4c 100%)',
-          boxShadow: '0 4px 20px 0 rgba(0, 0, 0, 0.5)',
-          borderBottom: '1px solid rgba(77, 171, 245, 0.2)',
-        }}
-      >
-        <Toolbar>
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+      {/* Pasek aplikacji */}
+      <StyledAppBar position="absolute" open={open}>
+        <StyledToolbar>
           <IconButton
+            edge="start"
             color="inherit"
             aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2 }}
+            onClick={toggleDrawer}
+            sx={{
+              marginRight: '36px',
+              ...(open && { display: 'none' }),
+            }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          <Typography
+            component="h1"
+            variant="h6"
+            color="inherit"
+            noWrap
+            sx={{ flexGrow: 1, fontWeight: 'bold' }}
+          >
             Inteligentny Plan Lekcji
           </Typography>
-
+          <Box sx={{ flexGrow: 1 }} />
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {performanceMode && (
-              <Tooltip title={`Tryb wydajności: ${
-                performanceMode === 'high-performance' ? 'Wysoka wydajność' :
-                performanceMode === 'balanced' ? 'Zrównoważony' :
-                performanceMode === 'feature-rich' ? 'Bogaty w funkcje' : 'Niestandardowy'
-              }`}>
-                <Box 
-                  sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    mr: 2, 
-                    px: 1.5, 
-                    py: 0.5, 
-                    borderRadius: 1,
-                    bgcolor: alpha(
-                      performanceMode === 'high-performance' ? theme.palette.warning.main :
-                      performanceMode === 'balanced' ? theme.palette.primary.main :
-                      performanceMode === 'feature-rich' ? theme.palette.secondary.main : 
-                      theme.palette.grey[500],
-                      0.2
-                    ),
-                    border: '1px solid',
-                    borderColor: alpha(
-                      performanceMode === 'high-performance' ? theme.palette.warning.main :
-                      performanceMode === 'balanced' ? theme.palette.primary.main :
-                      performanceMode === 'feature-rich' ? theme.palette.secondary.main : 
-                      theme.palette.grey[500],
-                      0.3
-                    ),
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => navigate('/settings')}
-                >
-                  <Typography variant="caption" sx={{ fontWeight: 'medium', letterSpacing: 0.5 }}>
-                    {performanceMode === 'high-performance' ? 'WYSOKA WYDAJNOŚĆ' :
-                     performanceMode === 'balanced' ? 'ZRÓWNOWAŻONY' :
-                     performanceMode === 'feature-rich' ? 'PEŁNE FUNKCJE' : 'NIESTANDARDOWY'}
-                  </Typography>
-                </Box>
-              </Tooltip>
-            )}
-
+            <Typography variant="body2" color="inherit" sx={{ mr: 2 }}>
+              Zaawansowane funkcje
+            </Typography>
+            <Tooltip title="Pomoc">
+              <IconButton color="inherit">
+                <HelpIcon />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Powiadomienia">
-              <IconButton 
-                color="inherit" 
-                onClick={handleOpenNotificationsMenu}
-                sx={{ mr: 1 }}
-              >
-                <Badge badgeContent={3} color="error">
+              <IconButton color="inherit" onClick={handleNotificationMenuOpen}>
+                <Badge badgeContent={4} color="secondary">
                   <NotificationsIcon />
                 </Badge>
               </IconButton>
             </Tooltip>
-
-            <Tooltip title="Profil użytkownika">
-              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0, ml: 1 }}>
-                <Avatar 
-                  alt="Jan Kowalski" 
-                  src="/static/images/avatar/1.jpg" 
-                  sx={{ 
-                    border: '2px solid',
-                    borderColor: alpha(theme.palette.primary.main, 0.5)
-                  }}
-                />
+            <Tooltip title="Profil">
+              <IconButton
+                color="inherit"
+                onClick={handleUserMenuOpen}
+                sx={{ ml: 1 }}
+              >
+                <Avatar sx={{ width: 32, height: 32, bgcolor: '#e0f2f1' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>P</Typography>
+                </Avatar>
               </IconButton>
             </Tooltip>
           </Box>
-        </Toolbar>
-      </AppBar>
+        </StyledToolbar>
+      </StyledAppBar>
 
-      <Drawer
-        variant="persistent"
-        anchor="left"
-        open={open}
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-            backgroundImage: 'linear-gradient(180deg, #0a1929 0%, #132f4c 100%)',
-            color: '#e3f2fd',
-            borderRight: '1px solid rgba(77, 171, 245, 0.2)',
-          },
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: theme.spacing(0, 1),
-            ...theme.mixins.toolbar,
-            justifyContent: 'space-between',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', pl: 2 }}>
-            <CalendarIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-            <Typography variant="h6" noWrap component="div">
-              Plan Lekcji
-            </Typography>
-          </Box>
-          <IconButton onClick={handleDrawerToggle} sx={{ color: 'white' }}>
-            {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          </IconButton>
-        </Box>
-        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-        <List>
-          {menuItems.map((item) => (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                component={Link}
-                to={item.path}
-                selected={isActive(item.path)}
-                sx={{
-                  '&.Mui-selected': {
-                    backgroundColor: 'rgba(77, 171, 245, 0.15)',
-                    borderLeft: '4px solid #4dabf5',
-                    '&:hover': {
-                      backgroundColor: 'rgba(77, 171, 245, 0.25)',
-                    },
-                  },
-                  '&:hover': {
-                    backgroundColor: 'rgba(77, 171, 245, 0.08)',
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ color: 'rgba(227, 242, 253, 0.7)' }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', mt: 'auto' }} />
-        <Box sx={{ p: 2, textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ opacity: 0.7 }}>
-            Inteligentny Plan Lekcji v1.0
-          </Typography>
-        </Box>
-      </Drawer>
-
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 0,
-          width: { sm: `calc(100% - ${open ? drawerWidth : 0}px)` },
-          ml: { sm: `${open ? drawerWidth : 0}px` },
-          transition: theme.transitions.create(['margin', 'width'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-        }}
-      >
-        <Toolbar /> {/* Spacer to push content below AppBar */}
-        <Outlet />
-      </Box>
-
-      {/* User Menu */}
+      {/* Menu użytkownika */}
       <Menu
-        sx={{ mt: '45px' }}
-        id="menu-appbar"
-        anchorEl={anchorElUser}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        keepMounted
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        open={Boolean(anchorElUser)}
-        onClose={handleCloseUserMenu}
-        PaperProps={{
-          sx: {
-            backgroundImage: 'linear-gradient(145deg, rgba(19, 47, 76, 0.95), rgba(10, 25, 41, 0.98))',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(77, 171, 245, 0.2)',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-          }
-        }}
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleUserMenuClose}
+        onClick={handleUserMenuClose}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <Box sx={{ px: 2, py: 1, textAlign: 'center' }}>
-          <Avatar 
-            alt="Jan Kowalski" 
-            src="/static/images/avatar/1.jpg" 
-            sx={{ 
-              width: 56, 
-              height: 56, 
-              mx: 'auto',
-              border: '2px solid',
-              borderColor: alpha(theme.palette.primary.main, 0.5)
-            }}
-          />
-          <Typography variant="subtitle1" sx={{ mt: 1 }}>
-            Jan Kowalski
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Administrator
-          </Typography>
-        </Box>
-        <Divider sx={{ my: 1, borderColor: 'rgba(77, 171, 245, 0.1)' }} />
-        <MenuItem onClick={handleCloseUserMenu}>
-          <ListItemIcon>
-            <AccountCircle fontSize="small" />
-          </ListItemIcon>
-          <Typography textAlign="center">Mój profil</Typography>
-        </MenuItem>
-        <MenuItem onClick={handleCloseUserMenu}>
-          <ListItemIcon>
-            <SettingsIcon fontSize="small" />
-          </ListItemIcon>
-          <Typography textAlign="center">Ustawienia</Typography>
-        </MenuItem>
-        <Divider sx={{ my: 1, borderColor: 'rgba(77, 171, 245, 0.1)' }} />
-        <MenuItem onClick={handleCloseUserMenu}>
-          <ListItemIcon>
-            <LightModeIcon fontSize="small" />
-          </ListItemIcon>
-          <Typography textAlign="center">Wyloguj</Typography>
-        </MenuItem>
+        <MenuItem onClick={() => navigate('/profile')}>Mój profil</MenuItem>
+        <MenuItem onClick={() => navigate('/account')}>Ustawienia konta</MenuItem>
+        <Divider />
+        <MenuItem onClick={() => navigate('/login')}>Wyloguj</MenuItem>
       </Menu>
 
-      {/* Notifications Menu */}
+      {/* Menu powiadomień */}
       <Menu
-        sx={{ mt: '45px' }}
-        id="menu-notifications"
-        anchorEl={anchorElNotifications}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        keepMounted
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        open={Boolean(anchorElNotifications)}
-        onClose={handleCloseNotificationsMenu}
+        anchorEl={notificationAnchorEl}
+        open={Boolean(notificationAnchorEl)}
+        onClose={handleNotificationMenuClose}
+        onClick={handleNotificationMenuClose}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         PaperProps={{
-          sx: {
-            width: 320,
-            maxHeight: 400,
-            backgroundImage: 'linear-gradient(145deg, rgba(19, 47, 76, 0.95), rgba(10, 25, 41, 0.98))',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(77, 171, 245, 0.2)',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-          }
+          sx: { width: 320, maxHeight: 400, overflow: 'auto' },
         }}
       >
-        <Box sx={{ px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle1">
-            Powiadomienia
-          </Typography>
-          <Typography variant="caption" color="primary" sx={{ cursor: 'pointer' }}>
-            Oznacz wszystkie jako przeczytane
-          </Typography>
-        </Box>
-        <Divider sx={{ borderColor: 'rgba(77, 171, 245, 0.1)' }} />
-        <MenuItem onClick={handleCloseNotificationsMenu} sx={{ py: 1.5 }}>
-          <ListItemIcon>
-            <Badge color="error" variant="dot">
-              <SwapIcon fontSize="small" />
-            </Badge>
-          </ListItemIcon>
-          <Box>
-            <Typography variant="body2">Nowe zastępstwo: Matematyka 2B</Typography>
-            <Typography variant="caption" color="text.secondary">
+        <MenuItem>
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="subtitle2" color="primary">Nowy plan lekcji</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Wygenerowano nowy plan lekcji dla klasy 2A
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+              2 minuty temu
+            </Typography>
+          </Box>
+        </MenuItem>
+        <Divider />
+        <MenuItem>
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="subtitle2" color="error">Konflikt w planie</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Wykryto nakładające się zajęcia w sali 103
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
               15 minut temu
             </Typography>
           </Box>
         </MenuItem>
-        <MenuItem onClick={handleCloseNotificationsMenu} sx={{ py: 1.5 }}>
-          <ListItemIcon>
-            <Badge color="error" variant="dot">
-              <CalendarIcon fontSize="small" />
-            </Badge>
-          </ListItemIcon>
-          <Box>
-            <Typography variant="body2">Zmiana w planie: Fizyka 3A</Typography>
-            <Typography variant="caption" color="text.secondary">
-              2 godziny temu
+        <Divider />
+        <MenuItem>
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="subtitle2" color="success.main">Zastępstwo przydzielone</Typography>
+            <Typography variant="body2" color="text.secondary">
+              mgr Jan Nowak zastąpi mgr Annę Kowalską w dniu 15.04
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+              1 godzina temu
             </Typography>
           </Box>
         </MenuItem>
-        <MenuItem onClick={handleCloseNotificationsMenu} sx={{ py: 1.5 }}>
-          <ListItemIcon>
-            <SyncIcon fontSize="small" />
-          </ListItemIcon>
-          <Box>
-            <Typography variant="body2">Eksport planu zakończony</Typography>
-            <Typography variant="caption" color="text.secondary">
-              wczoraj
-            </Typography>
+        <Divider />
+        <MenuItem>
+          <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <Button color="primary">Zobacz wszystkie powiadomienia</Button>
           </Box>
         </MenuItem>
-        <Divider sx={{ borderColor: 'rgba(77, 171, 245, 0.1)' }} />
-        <Box sx={{ p: 1, textAlign: 'center' }}>
-          <Typography variant="body2" color="primary" sx={{ cursor: 'pointer' }}>
-            Zobacz wszystkie powiadomienia
+      </Menu>
+
+      {/* Szuflada nawigacyjna */}
+      <StyledDrawer variant="permanent" open={open}>
+        <StyledToolbar
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            px: [1],
+          }}
+        >
+          <IconButton onClick={toggleDrawer}>
+            <ChevronLeftIcon />
+          </IconButton>
+        </StyledToolbar>
+        <Divider />
+        <List component="nav">
+          {menuItems.map((item) => (
+            <ListItem 
+              button 
+              key={item.text}
+              onClick={() => handleNavigation(item.path, item.id)}
+              sx={{
+                backgroundColor: activeItem === item.id ? 'rgba(63, 81, 181, 0.08)' : 'transparent',
+                '&:hover': {
+                  backgroundColor: 'rgba(63, 81, 181, 0.12)',
+                },
+                borderLeft: activeItem === item.id ? '4px solid #3f51b5' : '4px solid transparent',
+                pl: activeItem === item.id ? 2 : 3,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  color: activeItem === item.id ? '#3f51b5' : 'rgba(0, 0, 0, 0.54)',
+                }}
+              >
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText 
+                primary={item.text} 
+                primaryTypographyProps={{
+                  fontWeight: activeItem === item.id ? 'bold' : 'normal',
+                  color: activeItem === item.id ? '#3f51b5' : 'inherit',
+                }}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </StyledDrawer>
+
+      {/* Główna zawartość */}
+      <Box
+        component="main"
+        sx={{
+          backgroundColor: '#f0f2f5',
+          flexGrow: 1,
+          height: '100vh',
+          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <StyledToolbar />
+        <Box sx={{ p: 3, flexGrow: 1 }}>
+          <Routes>
+            <Route path="/" element={<PlanEditor />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/ustawienia" element={<Settings />} />
+            <Route path="/plan-klas" element={<PlanEditor />} />
+            <Route path="/plan-nauczycieli" element={<PlanEditor view="teachers" />} />
+            <Route path="/sale-lekcyjne" element={<PlanEditor view="rooms" />} />
+            <Route path="/asystent-ai" element={<PlanAnalytics />} />
+            <Route path="/statystyki" element={<PlanAnalytics view="statistics" />} />
+            <Route path="/personalizacja" element={<Settings view="personalization" />} />
+            <Route path="/integrations" element={<Integrations />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Box>
+        
+        {/* Stopka */}
+        <Box
+          component="footer"
+          sx={{
+            py: 1,
+            px: 2,
+            mt: 'auto',
+            backgroundColor: '#fff',
+            borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+          }}
+        >
+          <Typography variant="body2" color="text.secondary" align="center">
+            Inteligentny Plan Lekcji © {new Date().getFullYear()} | Wersja 1.0.0
           </Typography>
         </Box>
-      </Menu>
+      </Box>
     </Box>
   );
 };

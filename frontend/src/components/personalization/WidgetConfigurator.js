@@ -1,502 +1,775 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Box, 
+  Container, 
   Typography, 
   Paper, 
-  Grid, 
-  Card, 
-  CardContent,
+  Grid,
   Button,
-  Switch,
-  FormControlLabel,
-  FormGroup,
-  Tabs,
-  Tab,
-  Slider,
+  Card,
+  CardContent,
   Chip,
   Divider,
+  Tabs,
+  Tab,
   IconButton,
-  Tooltip,
-  Radio,
-  RadioGroup
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  Legend, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
+import AddIcon from '@mui/icons-material/Add';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import SettingsIcon from '@mui/icons-material/Settings';
-import PaletteIcon from '@mui/icons-material/Palette';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import ViewModuleIcon from '@mui/icons-material/ViewModule';
-import SaveIcon from '@mui/icons-material/Save';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import SpeedIcon from '@mui/icons-material/Speed';
 import TuneIcon from '@mui/icons-material/Tune';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import InfoIcon from '@mui/icons-material/Info';
+import ExtensionIcon from '@mui/icons-material/Extension';
+import ViewModuleIcon from '@mui/icons-material/ViewModule';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 
-/**
- * Komponent konfiguratora widgetów
- * Umożliwia personalizację interfejsu poprzez włączanie/wyłączanie i konfigurację widgetów
- */
+// Stylizowany kontener
+const StyledContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(4),
+}));
+
+// Stylizowany Paper dla zakładek
+const StyledTabsContainer = styled(Paper)(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+}));
+
+// Stylizowany Paper dla zawartości
+const StyledContentPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+  marginBottom: theme.spacing(3),
+}));
+
+// Stylizowany przełącznik
+const StyledSwitch = styled(Box)(({ theme, active }) => ({
+  width: 50,
+  height: 24,
+  backgroundColor: active ? theme.palette.primary.main : '#e0e0e0',
+  borderRadius: 12,
+  position: 'relative',
+  cursor: 'pointer',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    top: 2,
+    left: active ? 'calc(100% - 22px)' : 2,
+    width: 20,
+    height: 20,
+    backgroundColor: 'white',
+    borderRadius: '50%',
+    transition: 'left 0.3s',
+  },
+}));
+
+// Dane widgetów
+const widgetData = [
+  {
+    id: 'zastepstwa',
+    title: 'Widget zastępstw',
+    enabled: true,
+    category: 'nauczyciele',
+    content: {
+      title: 'Zastępstwo 12.04.2025',
+      description: 'Zastąp: mgr J. Nowak (polski) • s.103 • kl.2A',
+      alert: {
+        title: 'Odwołane zajęcia 15.04.2025',
+        description: 'Historia • s.108 • kl.1B • Lekcja 4 (10:45-11:30)',
+        type: 'warning'
+      }
+    }
+  },
+  {
+    id: 'dyzury',
+    title: 'Dyżury nauczycieli',
+    enabled: true,
+    category: 'nauczyciele',
+    content: {
+      days: ['PON', 'WT', 'ŚR', 'CZW', 'PT'],
+      teachers: [
+        { day: 'PON', name: 'J. Nowak', time: '10:00-10:30' },
+        { day: 'WT', name: 'A. Kowalska', time: '12:00-12:30' },
+        { day: 'ŚR', name: 'P. Zieliński', time: '9:00-9:30' },
+        { day: 'CZW', name: 'M. Wójcik', time: '11:00-11:30' },
+        { day: 'PT', name: 'T. Kalinowski', time: '13:00-13:30' }
+      ]
+    }
+  },
+  {
+    id: 'sugestie',
+    title: 'Sugestie optymalizacji AI',
+    enabled: true,
+    category: 'ai',
+    content: {
+      suggestions: [
+        { id: 1, text: 'Zamień salę 103 z 108 w czwartek (mniej przemieszczania)' },
+        { id: 2, text: 'Zmiana czasu WF z 3A i 3B w środę na piątek' },
+        { id: 3, text: 'Zwiększ liczbę sal komputerowych we wtorki' }
+      ]
+    }
+  },
+  {
+    id: 'przypomnienia',
+    title: 'Przypominacze i wydarzenia',
+    enabled: true,
+    category: 'powiadomienia',
+    content: {
+      events: [
+        { id: 1, title: 'Rada pedagogiczna', date: '12.04.2025', time: '14:00-16:00', location: 'Pokój nauczycielski', type: 'important' },
+        { id: 2, title: 'Wycieczka kl. 2A', date: '15.04.2025', time: '8:00-15:00', location: 'Zamek Królewski', type: 'confirmed' },
+        { id: 3, title: 'Dzień otwarty szkoły', date: '20.04.2025', time: '10:00-14:00', location: 'Cała szkoła', type: 'pending' }
+      ]
+    }
+  },
+  {
+    id: 'meteo',
+    title: 'Meteo-plan (Lekcje i pogoda)',
+    enabled: true,
+    category: 'inne',
+    content: {
+      forecast: [
+        { date: '12.04.2025', wfOutside: true, weather: 'sunny', temperature: 22 },
+        { date: '15.04.2025', wfOutside: false, weather: 'rainy', temperature: 12 },
+        { date: '20.04.2025', wfOutside: true, weather: 'partly_cloudy', temperature: 18 }
+      ]
+    }
+  },
+  {
+    id: 'konfigurator',
+    title: 'Konfigurator widgetów',
+    enabled: true,
+    category: 'admin',
+    content: {
+      enabled: ['Zastępstwa', 'Dyżury nauczycieli', 'Sugestie optymalizacji AI', 'Przypominacze i wydarzenia', 'Meteo-plan'],
+      available: ['Dostępność sal', 'Export i synchronizacja', 'Statystyki obciążenia', 'Historia zmian planu', 'Dziennik zastępstw']
+    }
+  }
+];
+
+// Komponent widgetów i rozszerzeń
 const WidgetConfigurator = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  const [activeCategory, setActiveCategory] = useState('wszystkie');
   const theme = useTheme();
-  const [tabValue, setTabValue] = useState(0);
-  const [availableWidgets, setAvailableWidgets] = useState([
-    { id: 'substitutions', name: 'Zastępstwa', enabled: true, category: 'teachers', icon: 'calendar' },
-    { id: 'teacher_duty', name: 'Dyżury nauczycieli', enabled: true, category: 'teachers', icon: 'person' },
-    { id: 'ai_suggestions', name: 'Sugestie optymalizacji AI', enabled: true, category: 'ai', icon: 'lightbulb' },
-    { id: 'reminders', name: 'Przypomnienia i wydarzenia', enabled: true, category: 'notifications', icon: 'alarm' },
-    { id: 'meteo_plan', name: 'Meteo-plan', enabled: true, category: 'other', icon: 'weather' },
-    { id: 'room_availability', name: 'Dostępność sal', enabled: false, category: 'rooms', icon: 'room' },
-    { id: 'export_sync', name: 'Eksport i synchronizacja', enabled: false, category: 'other', icon: 'sync' },
-    { id: 'statistics', name: 'Statystyki obciążenia', enabled: false, category: 'analytics', icon: 'chart' },
-    { id: 'substitution_journal', name: 'Dziennik zastępstw', enabled: false, category: 'teachers', icon: 'book' },
-    { id: 'change_history', name: 'Historia zmian planu', enabled: false, category: 'other', icon: 'history' }
-  ]);
   
-  const [widgetLayout, setWidgetLayout] = useState('standard');
-  const [widgetAnimations, setWidgetAnimations] = useState(true);
-  const [widgetNotifications, setWidgetNotifications] = useState(true);
-  const [widgetRefreshRate, setWidgetRefreshRate] = useState(5);
-  const [widgetDataDetail, setWidgetDataDetail] = useState(70);
-  const [widgetPerformance, setWidgetPerformance] = useState(50);
-  const [changesMade, setChangesMade] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-
   // Obsługa zmiany zakładki
   const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
+    setActiveTab(newValue);
   };
-
-  // Obsługa włączania/wyłączania widgetów
-  const handleWidgetToggle = (widgetId) => {
-    setAvailableWidgets(prevWidgets => 
-      prevWidgets.map(widget => 
-        widget.id === widgetId 
-          ? { ...widget, enabled: !widget.enabled } 
-          : widget
-      )
-    );
-    setChangesMade(true);
-    setSaveSuccess(false);
+  
+  // Obsługa zmiany kategorii
+  const handleCategoryChange = (category) => {
+    setActiveCategory(category);
   };
-
-  // Obsługa zmiany układu widgetów
-  const handleLayoutChange = (event) => {
-    setWidgetLayout(event.target.value);
-    setChangesMade(true);
-    setSaveSuccess(false);
-  };
-
-  // Obsługa zmiany animacji widgetów
-  const handleAnimationsChange = (event) => {
-    setWidgetAnimations(event.target.checked);
-    setChangesMade(true);
-    setSaveSuccess(false);
-  };
-
-  // Obsługa zmiany powiadomień widgetów
-  const handleNotificationsChange = (event) => {
-    setWidgetNotifications(event.target.checked);
-    setChangesMade(true);
-    setSaveSuccess(false);
-  };
-
-  // Obsługa zmiany częstotliwości odświeżania
-  const handleRefreshRateChange = (event, newValue) => {
-    setWidgetRefreshRate(newValue);
-    setChangesMade(true);
-    setSaveSuccess(false);
-  };
-
-  // Obsługa zmiany poziomu szczegółowości danych
-  const handleDataDetailChange = (event, newValue) => {
-    setWidgetDataDetail(newValue);
-    setChangesMade(true);
-    setSaveSuccess(false);
-  };
-
-  // Obsługa zmiany priorytetu wydajności
-  const handlePerformanceChange = (event, newValue) => {
-    setWidgetPerformance(newValue);
-    setChangesMade(true);
-    setSaveSuccess(false);
-  };
-
-  // Symulacja zapisywania ustawień
-  const handleSaveSettings = () => {
-    // Symulacja opóźnienia zapisu
-    setTimeout(() => {
-      setChangesMade(false);
-      setSaveSuccess(true);
-      
-      // Ukrycie komunikatu o sukcesie po 3 sekundach
-      setTimeout(() => {
-        setSaveSuccess(false);
-      }, 3000);
-    }, 1000);
-  };
-
-  // Symulacja resetowania ustawień
-  const handleResetSettings = () => {
-    setWidgetLayout('standard');
-    setWidgetAnimations(true);
-    setWidgetNotifications(true);
-    setWidgetRefreshRate(5);
-    setWidgetDataDetail(70);
-    setWidgetPerformance(50);
-    setAvailableWidgets(prevWidgets => 
-      prevWidgets.map(widget => ({
-        ...widget,
-        enabled: ['substitutions', 'teacher_duty', 'ai_suggestions', 'reminders', 'meteo_plan'].includes(widget.id)
-      }))
-    );
-    setChangesMade(true);
-    setSaveSuccess(false);
-  };
-
-  // Symulacja sugerowania optymalnego układu przez AI
-  const handleAISuggest = () => {
-    // Symulacja opóźnienia analizy AI
-    setTimeout(() => {
-      setWidgetLayout('compact');
-      setWidgetAnimations(true);
-      setWidgetNotifications(true);
-      setWidgetRefreshRate(10);
-      setWidgetDataDetail(50);
-      setWidgetPerformance(70);
-      setAvailableWidgets(prevWidgets => 
-        prevWidgets.map(widget => ({
-          ...widget,
-          enabled: ['substitutions', 'teacher_duty', 'ai_suggestions', 'room_availability', 'statistics'].includes(widget.id)
-        }))
-      );
-      setChangesMade(true);
-      setSaveSuccess(false);
-    }, 1500);
-  };
-
+  
   // Filtrowanie widgetów według kategorii
-  const getFilteredWidgets = () => {
-    if (tabValue === 0) {
-      return availableWidgets;
-    }
-    
-    const categories = ['teachers', 'rooms', 'ai', 'analytics', 'notifications', 'other'];
-    const selectedCategory = categories[tabValue - 1];
-    
-    return availableWidgets.filter(widget => widget.category === selectedCategory);
-  };
-
-  // Renderowanie ikony widgetu
-  const renderWidgetIcon = (iconName) => {
-    switch (iconName) {
-      case 'calendar':
-        return <i className="fas fa-calendar-alt" />;
-      case 'person':
-        return <i className="fas fa-user" />;
-      case 'lightbulb':
-        return <i className="fas fa-lightbulb" />;
-      case 'alarm':
-        return <i className="fas fa-bell" />;
-      case 'weather':
-        return <i className="fas fa-cloud-sun" />;
-      case 'room':
-        return <i className="fas fa-door-open" />;
-      case 'sync':
-        return <i className="fas fa-sync" />;
-      case 'chart':
-        return <i className="fas fa-chart-bar" />;
-      case 'book':
-        return <i className="fas fa-book" />;
-      case 'history':
-        return <i className="fas fa-history" />;
-      default:
-        return <i className="fas fa-puzzle-piece" />;
-    }
-  };
-
-  return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <ViewModuleIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-          <Typography variant="h5">Konfigurator widgetów</Typography>
+  const filteredWidgets = activeCategory === 'wszystkie' 
+    ? widgetData 
+    : widgetData.filter(widget => widget.category === activeCategory);
+  
+  // Renderowanie widgetu zastępstw
+  const renderSubstitutionWidget = () => (
+    <Card sx={{ mb: 3, overflow: 'visible' }}>
+      <CardContent sx={{ bgcolor: '#3f51b5', color: 'white' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6">Widget zastępstw</Typography>
+          <StyledSwitch active={true} />
         </Box>
-        <Box>
-          <Button
-            variant="outlined"
-            startIcon={<AutoAwesomeIcon />}
-            onClick={handleAISuggest}
-            sx={{ mr: 1 }}
-          >
-            Zaproponuj optymalny układ
-          </Button>
-          <IconButton>
-            <SettingsIcon />
-          </IconButton>
+      </CardContent>
+      <CardContent>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" color="primary" gutterBottom>
+            Zastępstwo 12.04.2025
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Zastąp: mgr J. Nowak (polski) • s.103 • kl.2A
+          </Typography>
         </Box>
-      </Box>
-
-      <Paper sx={{ mb: 3 }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
+        
+        <Box sx={{ 
+          p: 1.5, 
+          bgcolor: '#fff3e0', 
+          borderRadius: '4px',
+          border: '1px solid #ffe0b2'
+        }}>
+          <Typography variant="subtitle2" color="error" gutterBottom>
+            Odwołane zajęcia 15.04.2025
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Historia • s.108 • kl.1B • Lekcja 4 (10:45-11:30)
+          </Typography>
+        </Box>
+        
+        <Button 
+          variant="outlined" 
+          color="primary" 
+          fullWidth 
+          sx={{ mt: 2 }}
         >
-          <Tab label="Wszystkie" />
-          <Tab label="Dla nauczycieli" />
-          <Tab label="Sale lekcyjne" />
-          <Tab label="AI" />
-          <Tab label="Analiza" />
-          <Tab label="Powiadomienia" />
-          <Tab label="Inne" />
-        </Tabs>
-      </Paper>
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Włączone widgety:
-              </Typography>
-              
-              <Grid container spacing={2}>
-                {getFilteredWidgets().map((widget) => (
-                  <Grid item xs={12} sm={6} md={4} key={widget.id}>
-                    <Paper
-                      elevation={widget.enabled ? 3 : 1}
-                      sx={{
-                        p: 2,
-                        borderRadius: 2,
-                        bgcolor: widget.enabled ? `${theme.palette.primary.main}11` : theme.palette.background.default,
-                        border: 1,
-                        borderColor: widget.enabled ? theme.palette.primary.main : theme.palette.divider,
-                        transition: 'all 0.3s ease',
-                        opacity: widget.enabled ? 1 : 0.6,
-                        '&:hover': {
-                          opacity: 1,
-                          boxShadow: widget.enabled ? 6 : 2
-                        }
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Box 
-                            sx={{ 
-                              width: 36, 
-                              height: 36, 
-                              borderRadius: '50%', 
-                              bgcolor: widget.enabled ? theme.palette.primary.main : theme.palette.grey[300],
-                              color: widget.enabled ? theme.palette.primary.contrastText : theme.palette.text.secondary,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              mr: 1.5
-                            }}
-                          >
-                            {renderWidgetIcon(widget.icon)}
-                          </Box>
-                          <Typography variant="subtitle1">
-                            {widget.name}
-                          </Typography>
-                        </Box>
-                        <Switch
-                          checked={widget.enabled}
-                          onChange={() => handleWidgetToggle(widget.id)}
-                          color="primary"
-                        />
-                      </Box>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-              
-              {getFilteredWidgets().length === 0 && (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography variant="body1" color="textSecondary">
-                    Brak widgetów w tej kategorii
-                  </Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+          Zarządzaj zastępstwami
+        </Button>
+      </CardContent>
+    </Card>
+  );
+  
+  // Renderowanie widgetu dyżurów
+  const renderDutyWidget = () => (
+    <Card sx={{ mb: 3, overflow: 'visible' }}>
+      <CardContent sx={{ bgcolor: '#3f51b5', color: 'white' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6">Dyżury nauczycieli</Typography>
+          <StyledSwitch active={true} />
+        </Box>
+      </CardContent>
+      <CardContent>
+        <Grid container spacing={1} sx={{ mb: 2 }}>
+          <Grid item xs={2.4}>
+            <Typography variant="body2" align="center" fontWeight="bold">PON</Typography>
+          </Grid>
+          <Grid item xs={2.4}>
+            <Typography variant="body2" align="center" fontWeight="bold">WT</Typography>
+          </Grid>
+          <Grid item xs={2.4}>
+            <Typography variant="body2" align="center" fontWeight="bold">ŚR</Typography>
+          </Grid>
+          <Grid item xs={2.4}>
+            <Typography variant="body2" align="center" fontWeight="bold">CZW</Typography>
+          </Grid>
+          <Grid item xs={2.4}>
+            <Typography variant="body2" align="center" fontWeight="bold">PT</Typography>
+          </Grid>
         </Grid>
         
-        <Grid item xs={12} md={4}>
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Układ elementów
-              </Typography>
-              
-              <RadioGroup
-                value={widgetLayout}
-                onChange={handleLayoutChange}
-              >
-                <FormControlLabel 
-                  value="standard" 
-                  control={<Radio color="primary" />} 
-                  label="Standardowy" 
-                />
-                <FormControlLabel 
-                  value="compact" 
-                  control={<Radio color="primary" />} 
-                  label="Kompaktowy" 
-                />
-                <FormControlLabel 
-                  value="expanded" 
-                  control={<Radio color="primary" />} 
-                  label="Poszerzony" 
-                />
-                <FormControlLabel 
-                  value="two-column" 
-                  control={<Radio color="primary" />} 
-                  label="Dwukolumnowy" 
-                />
-                <FormControlLabel 
-                  value="tables" 
-                  control={<Radio color="primary" />} 
-                  label="Tabelaryczny" 
-                />
-                <FormControlLabel 
-                  value="mobile" 
-                  control={<Radio color="primary" />} 
-                  label="Mobilny" 
-                />
-              </RadioGroup>
-              
-              <Box sx={{ mt: 2 }}>
-                <FormGroup>
-                  <FormControlLabel
-                    control={
-                      <Switch 
-                        checked={widgetAnimations} 
-                        onChange={handleAnimationsChange}
-                        color="primary"
-                      />
-                    }
-                    label="Animacje interfejsu"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch 
-                        checked={widgetNotifications} 
-                        onChange={handleNotificationsChange}
-                        color="primary"
-                      />
-                    }
-                    label="Powiadomienia na stronie"
-                  />
-                </FormGroup>
-              </Box>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Wydajność aplikacji
-              </Typography>
-              
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2">Poziom szczegółowości</Typography>
-                  <Tooltip title="Określa ilość szczegółowych danych wyświetlanych w widgetach">
-                    <InfoIcon fontSize="small" color="action" />
-                  </Tooltip>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography variant="caption" color="textSecondary">Podstawowy</Typography>
-                  <Slider
-                    value={widgetDataDetail}
-                    onChange={handleDataDetailChange}
-                    sx={{ mx: 2 }}
-                  />
-                  <Typography variant="caption" color="textSecondary">Pełny</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2">Szybkość ładowania vs funkcjonalność</Typography>
-                  <Tooltip title="Balans między szybkością działania a dostępnymi funkcjami">
-                    <InfoIcon fontSize="small" color="action" />
-                  </Tooltip>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography variant="caption" color="textSecondary">Szybkość</Typography>
-                  <Slider
-                    value={widgetPerformance}
-                    onChange={handlePerformanceChange}
-                    sx={{ mx: 2 }}
-                  />
-                  <Typography variant="caption" color="textSecondary">Funkcjonalność</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2">Częstotliwość odświeżania (sekundy)</Typography>
-                  <Tooltip title="Jak często widgety pobierają nowe dane">
-                    <InfoIcon fontSize="small" color="action" />
-                  </Tooltip>
-                </Box>
-                <Slider
-                  value={widgetRefreshRate}
-                  onChange={handleRefreshRateChange}
-                  step={5}
-                  marks
-                  min={5}
-                  max={60}
-                  valueLabelDisplay="auto"
-                />
-              </Box>
-              
-              <Divider sx={{ my: 2 }} />
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  startIcon={<RestartAltIcon />}
-                  onClick={handleResetSettings}
+        <Grid container spacing={1}>
+          <Grid item xs={2.4}>
+            <Box sx={{ 
+              p: 1, 
+              bgcolor: '#f5f5f5', 
+              borderRadius: '4px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Typography variant="body2" align="center">J. Nowak</Typography>
+              <Typography variant="caption" color="textSecondary" align="center">10:00-10:30</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={2.4}>
+            <Box sx={{ 
+              p: 1, 
+              bgcolor: '#f5f5f5', 
+              borderRadius: '4px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Typography variant="body2" align="center">A. Kowalska</Typography>
+              <Typography variant="caption" color="textSecondary" align="center">12:00-12:30</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={2.4}>
+            <Box sx={{ 
+              p: 1, 
+              bgcolor: '#f5f5f5', 
+              borderRadius: '4px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Typography variant="body2" align="center">P. Zieliński</Typography>
+              <Typography variant="caption" color="textSecondary" align="center">9:00-9:30</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={2.4}>
+            <Box sx={{ 
+              p: 1, 
+              bgcolor: '#f5f5f5', 
+              borderRadius: '4px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Typography variant="body2" align="center">M. Wójcik</Typography>
+              <Typography variant="caption" color="textSecondary" align="center">11:00-11:30</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={2.4}>
+            <Box sx={{ 
+              p: 1, 
+              bgcolor: '#f5f5f5', 
+              borderRadius: '4px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Typography variant="body2" align="center">T. Kalinowski</Typography>
+              <Typography variant="caption" color="textSecondary" align="center">13:00-13:30</Typography>
+            </Box>
+          </Grid>
+        </Grid>
+        
+        <Typography variant="caption" color="textSecondary" align="center" sx={{ display: 'block', mt: 1 }}>
+          Kliknij na komórkę, aby edytować dyżur
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+  
+  // Renderowanie widgetu sugestii AI
+  const renderAISuggestionsWidget = () => (
+    <Card sx={{ mb: 3, overflow: 'visible' }}>
+      <CardContent sx={{ bgcolor: '#3f51b5', color: 'white' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6">Sugestie optymalizacji AI</Typography>
+          <StyledSwitch active={true} />
+        </Box>
+      </CardContent>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <SmartToyIcon color="primary" sx={{ mr: 1 }} />
+          <Typography variant="subtitle1" color="primary">
+            Sugestie optymalizacji planu
+          </Typography>
+        </Box>
+        
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            1. Zamień salę 103 z 108 w czwartek (mniej przemieszczania)
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            2. Zmiana czasu WF z 3A i 3B w środę na piątek
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            3. Zwiększ liczbę sal komputerowych we wtorki
+          </Typography>
+        </Box>
+        
+        <Button 
+          variant="contained" 
+          color="primary" 
+          sx={{ mt: 1 }}
+        >
+          Zastosuj sugestie
+        </Button>
+      </CardContent>
+    </Card>
+  );
+  
+  // Renderowanie widgetu przypomnień
+  const renderRemindersWidget = () => (
+    <Card sx={{ mb: 3, overflow: 'visible' }}>
+      <CardContent sx={{ bgcolor: '#3f51b5', color: 'white' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6">Przypominacze i wydarzenia</Typography>
+          <StyledSwitch active={true} />
+        </Box>
+      </CardContent>
+      <CardContent>
+        <Box sx={{ 
+          p: 1.5, 
+          mb: 2,
+          bgcolor: '#ffebee', 
+          borderRadius: '4px',
+          borderLeft: '4px solid #f44336'
+        }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Rada pedagogiczna
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            12.04.2025 • 14:00-16:00 • Pokój nauczycielski
+          </Typography>
+          <Chip 
+            label="WAŻNE" 
+            size="small" 
+            sx={{ 
+              mt: 1, 
+              bgcolor: '#ffebee', 
+              color: '#f44336', 
+              borderColor: '#f44336',
+              fontSize: '0.7rem'
+            }} 
+            variant="outlined" 
+          />
+        </Box>
+        
+        <Box sx={{ 
+          p: 1.5, 
+          mb: 2,
+          bgcolor: '#e8f5e9', 
+          borderRadius: '4px',
+          borderLeft: '4px solid #4caf50'
+        }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Wycieczka kl. 2A
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            15.04.2025 • 8:00-15:00 • Zamek Królewski
+          </Typography>
+          <Chip 
+            label="ZATWIERDZONE" 
+            size="small" 
+            sx={{ 
+              mt: 1, 
+              bgcolor: '#e8f5e9', 
+              color: '#4caf50', 
+              borderColor: '#4caf50',
+              fontSize: '0.7rem'
+            }} 
+            variant="outlined" 
+          />
+        </Box>
+        
+        <Box sx={{ 
+          p: 1.5, 
+          bgcolor: '#fff8e1', 
+          borderRadius: '4px',
+          borderLeft: '4px solid #ff9800'
+        }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Dzień otwarty szkoły
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            20.04.2025 • 10:00-14:00 • Cała szkoła
+          </Typography>
+          <Chip 
+            label="W TRAKCIE" 
+            size="small" 
+            sx={{ 
+              mt: 1, 
+              bgcolor: '#fff8e1', 
+              color: '#ff9800', 
+              borderColor: '#ff9800',
+              fontSize: '0.7rem'
+            }} 
+            variant="outlined" 
+          />
+        </Box>
+      </CardContent>
+    </Card>
+  );
+  
+  // Renderowanie widgetu meteo-planu
+  const renderMeteoPlanWidget = () => (
+    <Card sx={{ mb: 3, overflow: 'visible' }}>
+      <CardContent sx={{ bgcolor: '#3f51b5', color: 'white' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6">Meteo-plan (Lekcje i pogoda)</Typography>
+          <StyledSwitch active={true} />
+        </Box>
+      </CardContent>
+      <CardContent>
+        <Grid container spacing={1} sx={{ mb: 1 }}>
+          <Grid item xs={4}>
+            <Typography variant="body2" fontWeight="bold">Data</Typography>
+          </Grid>
+          <Grid item xs={4}>
+            <Typography variant="body2" fontWeight="bold">WF na zewnątrz</Typography>
+          </Grid>
+          <Grid item xs={4}>
+            <Typography variant="body2" fontWeight="bold">Pogoda</Typography>
+          </Grid>
+        </Grid>
+        
+        <Grid container spacing={1} sx={{ mb: 1 }}>
+          <Grid item xs={4}>
+            <Typography variant="body2">12.04.2025</Typography>
+          </Grid>
+          <Grid item xs={4}>
+            <Typography variant="body2" color="primary" fontWeight="bold">ZALECANE</Typography>
+          </Grid>
+          <Grid item xs={4}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Box 
+                component="span" 
+                sx={{ 
+                  display: 'inline-block', 
+                  width: 20, 
+                  height: 20, 
+                  borderRadius: '50%', 
+                  bgcolor: '#ffeb3b',
+                  mr: 1
+                }} 
+              />
+              <Typography variant="body2">22°C</Typography>
+            </Box>
+          </Grid>
+        </Grid>
+        
+        <Grid container spacing={1} sx={{ mb: 1 }}>
+          <Grid item xs={4}>
+            <Typography variant="body2">15.04.2025</Typography>
+          </Grid>
+          <Grid item xs={4}>
+            <Typography variant="body2" color="error" fontWeight="bold">NIEZALECANE</Typography>
+          </Grid>
+          <Grid item xs={4}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Box 
+                component="span" 
+                sx={{ 
+                  display: 'inline-block', 
+                  width: 20, 
+                  height: 20, 
+                  borderRadius: '50%', 
+                  bgcolor: '#e0e0e0',
+                  mr: 1
+                }} 
+              />
+              <Typography variant="body2">12°C</Typography>
+            </Box>
+          </Grid>
+        </Grid>
+        
+        <Grid container spacing={1}>
+          <Grid item xs={4}>
+            <Typography variant="body2">20.04.2025</Typography>
+          </Grid>
+          <Grid item xs={4}>
+            <Typography variant="body2" color="primary" fontWeight="bold">ZALECANE</Typography>
+          </Grid>
+          <Grid item xs={4}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Box 
+                component="span" 
+                sx={{ 
+                  display: 'inline-block', 
+                  width: 20, 
+                  height: 20, 
+                  borderRadius: '50%', 
+                  bgcolor: '#ffeb3b',
+                  mr: 1
+                }} 
+              />
+              <Typography variant="body2">18°C</Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </CardContent>
+    </Card>
+  );
+  
+  // Renderowanie widgetu konfiguratora
+  const renderConfiguratorWidget = () => (
+    <Card sx={{ mb: 3, overflow: 'visible' }}>
+      <CardContent sx={{ bgcolor: '#3f51b5', color: 'white' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6">Konfigurator widgetów</Typography>
+          <StyledSwitch active={true} />
+        </Box>
+      </CardContent>
+      <CardContent>
+        <Grid container spacing={2}>
+          <Grid item xs={6}>
+            <Typography variant="subtitle2" gutterBottom>
+              Włączone widgety:
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              {['Zastępstwa', 'Dyżury nauczycieli', 'Sugestie optymalizacji AI', 'Przypominacze i wydarzenia', 'Meteo-plan'].map((widget, index) => (
+                <Box 
+                  key={index} 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 0.5 
+                  }}
                 >
-                  Przywróć domyślne
-                </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<SaveIcon />}
-                  onClick={handleSaveSettings}
-                  disabled={!changesMade}
-                >
-                  Zapisz ustawienia
-                </Button>
-              </Box>
-              
-              {saveSuccess && (
-                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', color: theme.palette.success.main }}>
-                  <CheckCircleIcon fontSize="small" sx={{ mr: 1 }} />
-                  <Typography variant="body2">
-                    Ustawienia zostały zapisane pomyślnie
-                  </Typography>
+                  <Box 
+                    sx={{ 
+                      width: 16, 
+                      height: 16, 
+                      borderRadius: '3px', 
+                      bgcolor: '#4caf50',
+                      mr: 1
+                    }} 
+                  />
+                  <Typography variant="body2">{widget}</Typography>
                 </Box>
-              )}
-            </CardContent>
-          </Card>
+              ))}
+            </Box>
+          </Grid>
+          <Grid item xs={6}>
+            <Typography variant="subtitle2" gutterBottom>
+              Dostępne widgety:
+            </Typography>
+            <Box>
+              {['Dostępność sal', 'Export i synchronizacja', 'Statystyki obciążenia', 'Historia zmian planu', 'Dziennik zastępstw'].map((widget, index) => (
+                <Box 
+                  key={index} 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 0.5 
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      width: 16, 
+                      height: 16, 
+                      borderRadius: '3px', 
+                      bgcolor: '#e0e0e0',
+                      mr: 1
+                    }} 
+                  />
+                  <Typography variant="body2">{widget}</Typography>
+                </Box>
+              ))}
+            </Box>
+          </Grid>
+        </Grid>
+        
+        <Button 
+          variant="contained" 
+          color="primary" 
+          fullWidth 
+          sx={{ mt: 2 }}
+        >
+          Zarządzaj widgetami
+        </Button>
+      </CardContent>
+    </Card>
+  );
+  
+  return (
+    <StyledContainer maxWidth="lg">
+      <Typography variant="h4" gutterBottom>
+        Inteligentny Plan Lekcji - Widgety i rozszerzenia
+      </Typography>
+      
+      <Typography variant="h5" gutterBottom>
+        Widgety i rozszerzenia funkcjonalne
+      </Typography>
+      <Typography variant="body1" color="textSecondary" paragraph>
+        Dodatkowe narzędzia i funkcje dostępne dla użytkowników - możliwość włączania/wyłączania
+      </Typography>
+      
+      <Box sx={{ 
+        bgcolor: '#f5f5f5', 
+        borderRadius: '30px', 
+        p: 1, 
+        display: 'flex', 
+        justifyContent: 'center',
+        mb: 3
+      }}>
+        <Button 
+          variant={activeCategory === 'wszystkie' ? 'contained' : 'text'}
+          color="primary"
+          onClick={() => handleCategoryChange('wszystkie')}
+          sx={{ borderRadius: '20px', mx: 0.5 }}
+        >
+          Wszystkie
+        </Button>
+        <Button 
+          variant={activeCategory === 'nauczyciele' ? 'contained' : 'text'}
+          color="primary"
+          onClick={() => handleCategoryChange('nauczyciele')}
+          sx={{ borderRadius: '20px', mx: 0.5 }}
+        >
+          Dla nauczycieli
+        </Button>
+        <Button 
+          variant={activeCategory === 'uczniowie' ? 'contained' : 'text'}
+          color="primary"
+          onClick={() => handleCategoryChange('uczniowie')}
+          sx={{ borderRadius: '20px', mx: 0.5 }}
+        >
+          Dla uczniów
+        </Button>
+        <Button 
+          variant={activeCategory === 'admin' ? 'contained' : 'text'}
+          color="primary"
+          onClick={() => handleCategoryChange('admin')}
+          sx={{ borderRadius: '20px', mx: 0.5 }}
+        >
+          Administracyjne
+        </Button>
+        <Button 
+          variant={activeCategory === 'analiza' ? 'contained' : 'text'}
+          color="primary"
+          onClick={() => handleCategoryChange('analiza')}
+          sx={{ borderRadius: '20px', mx: 0.5 }}
+        >
+          Analiza
+        </Button>
+        <Button 
+          variant={activeCategory === 'powiadomienia' ? 'contained' : 'text'}
+          color="primary"
+          onClick={() => handleCategoryChange('powiadomienia')}
+          sx={{ borderRadius: '20px', mx: 0.5 }}
+        >
+          Powiadomienia
+        </Button>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          ml: 1,
+          bgcolor: 'rgba(63, 81, 181, 0.08)',
+          borderRadius: '20px',
+          px: 2,
+          py: 0.5
+        }}>
+          <SmartToyIcon color="primary" sx={{ mr: 0.5, fontSize: 18 }} />
+          <Typography variant="body2" color="primary">
+            Sugerowane
+          </Typography>
+        </Box>
+      </Box>
+      
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6} lg={4}>
+          {renderSubstitutionWidget()}
+        </Grid>
+        <Grid item xs={12} md={6} lg={4}>
+          {renderDutyWidget()}
+        </Grid>
+        <Grid item xs={12} md={6} lg={4}>
+          {renderAISuggestionsWidget()}
+        </Grid>
+        <Grid item xs={12} md={6} lg={4}>
+          {renderRemindersWidget()}
+        </Grid>
+        <Grid item xs={12} md={6} lg={4}>
+          {renderMeteoPlanWidget()}
+        </Grid>
+        <Grid item xs={12} md={6} lg={4}>
+          {renderConfiguratorWidget()}
         </Grid>
       </Grid>
       
-      <Box sx={{ mt: 3 }}>
-        <Typography variant="subtitle2" color="textSecondary">
+      <Box sx={{ textAlign: 'center', mt: 3, color: 'text.secondary' }}>
+        <Typography variant="body2">
           Widgety i rozszerzenia można dowolnie włączać, wyłączać i konfigurować dla każdego użytkownika
         </Typography>
       </Box>
-    </Box>
+    </StyledContainer>
   );
 };
 

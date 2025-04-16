@@ -1,316 +1,655 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
+  Container, 
   Typography, 
   Paper, 
-  Grid, 
-  Button, 
   Tabs, 
   Tab, 
-  Tooltip,
-  IconButton,
+  Grid,
+  Button,
   Card,
   CardContent,
-  Chip
+  IconButton,
+  Tooltip,
+  Badge,
+  Chip,
+  Divider
 } from '@mui/material';
-import ZoomInIcon from '@mui/icons-material/ZoomIn';
-import ZoomOutIcon from '@mui/icons-material/ZoomOut';
-import RoomService from '../../services/RoomService';
-import { useTheme } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
+import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
+import ZoomInMapIcon from '@mui/icons-material/ZoomInMap';
+import ThermostatIcon from '@mui/icons-material/Thermostat';
+import WifiIcon from '@mui/icons-material/Wifi';
+import ComputerIcon from '@mui/icons-material/Computer';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import EventSeatIcon from '@mui/icons-material/EventSeat';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import InfoIcon from '@mui/icons-material/Info';
+import AirIcon from '@mui/icons-material/Air';
 
-/**
- * Komponent interaktywnej mapy szkoły z rozkładem sal
- * Umożliwia wizualizację 3D rozkładu sal w szkole
- */
+// Stylizowany kontener
+const StyledContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(4),
+}));
+
+// Stylizowany Paper dla zakładek
+const StyledTabsContainer = styled(Paper)(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+}));
+
+// Stylizowany Paper dla zawartości
+const StyledContentPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+  marginBottom: theme.spacing(3),
+}));
+
+// Stylizowany komponent sali
+const RoomBox = styled(Box)(({ theme, color }) => ({
+  width: '100%',
+  height: '100%',
+  backgroundColor: color,
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(1),
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  color: theme.palette.getContrastText(color),
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    transform: 'translateY(-2px)',
+  },
+}));
+
+// Stylizowany komponent dla specjalnych elementów
+const SpecialRoomBox = styled(Box)(({ theme, bgcolor }) => ({
+  width: '100%',
+  height: '100%',
+  backgroundColor: bgcolor || 'rgba(255, 255, 255, 0.8)',
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(1),
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  flexDirection: 'column',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    transform: 'translateY(-2px)',
+  },
+}));
+
+// Komponent strony zarządzania salami
 const SchoolMap3D = () => {
-  const theme = useTheme();
-  const [activeFloor, setActiveFloor] = useState(1);
-  const [rooms, setRooms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  // Stan dla aktywnej zakładki
   const [activeTab, setActiveTab] = useState(0);
-
+  const [selectedRoom, setSelectedRoom] = useState('103');
+  const [floor, setFloor] = useState(1);
+  
   // Kolory dla różnych typów sal
   const roomColors = {
-    'zajęta': theme.palette.error.light,
-    'wolna': theme.palette.success.light,
-    'specjalistyczna': theme.palette.warning.light,
-    'językowa': theme.palette.info.light,
-    'komputerowa': theme.palette.primary.light
+    zajeta: '#ffcdd2',
+    wolna: '#dcedc8',
+    specjalistyczna: '#fff9c4',
+    jezykowa: '#e1bee7',
+    komputerowa: '#bbdefb',
   };
 
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        setLoading(true);
-        const response = await RoomService.getAllRooms();
-        setRooms(response.data);
-        setLoading(false);
-      } catch (err) {
-        setError('Nie udało się pobrać danych o salach');
-        setLoading(false);
-        console.error('Error fetching rooms:', err);
-      }
-    };
+  // Dane sal na piętrze 1
+  const floor1Rooms = [
+    { id: '101', type: 'komputerowa', status: 'wolna' },
+    { id: '102', type: 'jezykowa', status: 'zajeta' },
+    { id: '103', type: 'ogolna', status: 'wolna', selected: true },
+    { id: '104', type: 'fizyczna', status: 'zajeta' },
+    { id: '105', type: 'ogolna', status: 'wolna' },
+    { id: '106', type: 'specjalistyczna', status: 'wolna' },
+    { id: '107', type: 'ogolna', status: 'zajeta' },
+    { id: '108', type: 'biologiczna', status: 'wolna' },
+    { id: '109', type: 'ogolna', status: 'zajeta' },
+    { id: '110', type: 'chemiczna', status: 'wolna' },
+  ];
 
-    fetchRooms();
-  }, []);
-
-  const handleFloorChange = (floor) => {
-    setActiveFloor(floor);
-  };
-
-  const handleZoomIn = () => {
-    if (zoomLevel < 1.5) {
-      setZoomLevel(zoomLevel + 0.1);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (zoomLevel > 0.6) {
-      setZoomLevel(zoomLevel - 0.1);
-    }
-  };
-
+  // Obsługa zmiany zakładki
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
-  // Filtrowanie sal dla aktywnego piętra
-  const floorRooms = rooms.filter(room => room.floor === activeFloor);
+  // Obsługa wyboru sali
+  const handleRoomSelect = (roomId) => {
+    setSelectedRoom(roomId);
+  };
 
-  // Przykładowe dane sal dla wizualizacji (gdy API nie zwraca danych)
-  const sampleRooms = [
-    { id: 101, name: '101', type: 'komputerowa', floor: 1, status: 'wolna', x: 0, y: 0 },
-    { id: 102, name: '102', type: 'językowa', floor: 1, status: 'zajęta', x: 1, y: 0 },
-    { id: 103, name: '103', type: 'ogólna', floor: 1, status: 'wolna', x: 0, y: 1 },
-    { id: 104, name: '104', type: 'fizyczna', floor: 1, status: 'zajęta', x: 1, y: 1 },
-    { id: 105, name: '105', type: 'ogólna', floor: 1, status: 'wolna', x: 0, y: 2 },
-    { id: 106, name: '106', type: 'chemiczna', floor: 1, status: 'zajęta', x: 2, y: 0 },
-    { id: 107, name: '107', type: 'ogólna', floor: 1, status: 'wolna', x: 2, y: 1 },
-    { id: 108, name: '108', type: 'biologiczna', floor: 1, status: 'zajęta', x: 3, y: 0 },
-    { id: 109, name: '109', type: 'ogólna', floor: 1, status: 'wolna', x: 3, y: 1 },
-    { id: 110, name: '110', type: 'ogólna', floor: 1, status: 'zajęta', x: 3, y: 2 },
-    { id: 201, name: '201', type: 'komputerowa', floor: 2, status: 'wolna', x: 0, y: 0 },
-    { id: 202, name: '202', type: 'językowa', floor: 2, status: 'zajęta', x: 1, y: 0 },
-  ];
+  // Obsługa zmiany piętra
+  const handleFloorChange = (newFloor) => {
+    setFloor(newFloor);
+  };
 
-  // Używamy przykładowych danych, jeśli API nie zwróciło danych
-  const displayRooms = floorRooms.length > 0 ? floorRooms : sampleRooms.filter(room => room.floor === activeFloor);
+  // Renderowanie mapy 3D
+  const render3DMap = () => (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6">
+          Piętro {floor} - Podgląd 3D
+        </Typography>
+        <Box>
+          <IconButton onClick={() => handleFloorChange(Math.max(1, floor - 1))}>
+            <ZoomOutMapIcon />
+          </IconButton>
+          <IconButton onClick={() => handleFloorChange(Math.min(3, floor + 1))}>
+            <ZoomInMapIcon />
+          </IconButton>
+        </Box>
+      </Box>
 
-  // Renderowanie siatki sal
-  const renderRoomGrid = () => {
-    // Określenie maksymalnych współrzędnych dla siatki
-    const maxX = Math.max(...displayRooms.map(room => room.x)) + 1;
-    const maxY = Math.max(...displayRooms.map(room => room.y)) + 1;
-    
-    // Tworzenie pustej siatki
-    const grid = Array(maxY).fill().map(() => Array(maxX).fill(null));
-    
-    // Wypełnianie siatki salami
-    displayRooms.forEach(room => {
-      if (room.x !== undefined && room.y !== undefined) {
-        grid[room.y][room.x] = room;
-      }
-    });
-
-    return (
-      <Box 
-        sx={{ 
-          transform: `scale(${zoomLevel})`,
-          transition: 'transform 0.3s ease',
-          transformOrigin: 'top left',
-          mt: 2
-        }}
-      >
-        {grid.map((row, rowIndex) => (
-          <Grid container spacing={1} key={`row-${rowIndex}`} sx={{ mb: 1 }}>
-            {row.map((room, colIndex) => (
-              <Grid item key={`cell-${rowIndex}-${colIndex}`}>
-                {room ? (
-                  <Paper
-                    elevation={3}
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      backgroundColor: roomColors[room.type] || roomColors[room.status] || theme.palette.grey[300],
-                      cursor: 'pointer',
-                      '&:hover': {
-                        boxShadow: 6,
-                        transform: 'scale(1.05)',
-                        transition: 'transform 0.2s ease'
-                      }
-                    }}
-                  >
-                    <Typography variant="h6">{room.name}</Typography>
-                    <Typography variant="caption">{room.type}</Typography>
-                  </Paper>
-                ) : (
-                  <Box sx={{ width: 80, height: 80 }} />
-                )}
-              </Grid>
-            ))}
+      <Grid container spacing={2} sx={{ height: '400px' }}>
+        {/* Lewa strona korytarza */}
+        <Grid item xs={6}>
+          <Grid container spacing={2}>
+            <Grid item xs={4}>
+              <RoomBox 
+                color={roomColors.komputerowa} 
+                onClick={() => handleRoomSelect('101')}
+                sx={{ border: selectedRoom === '101' ? '3px solid #3f51b5' : 'none' }}
+              >
+                <Typography variant="subtitle1">101</Typography>
+              </RoomBox>
+            </Grid>
+            <Grid item xs={4}>
+              <RoomBox 
+                color={roomColors.jezykowa} 
+                onClick={() => handleRoomSelect('102')}
+                sx={{ border: selectedRoom === '102' ? '3px solid #3f51b5' : 'none' }}
+              >
+                <Typography variant="subtitle1">102</Typography>
+              </RoomBox>
+            </Grid>
+            <Grid item xs={4}>
+              <Box sx={{ height: '100%', bgcolor: '#f5f5f5', borderRadius: 1 }}></Box>
+            </Grid>
+            <Grid item xs={4}>
+              <RoomBox 
+                color={roomColors.zajeta} 
+                onClick={() => handleRoomSelect('104')}
+                sx={{ border: selectedRoom === '104' ? '3px solid #3f51b5' : 'none' }}
+              >
+                <Typography variant="subtitle1">104</Typography>
+              </RoomBox>
+            </Grid>
+            <Grid item xs={4}>
+              <RoomBox 
+                color={roomColors.wolna} 
+                onClick={() => handleRoomSelect('105')}
+                sx={{ border: selectedRoom === '105' ? '3px solid #3f51b5' : 'none' }}
+              >
+                <Typography variant="subtitle1">105</Typography>
+              </RoomBox>
+            </Grid>
+            <Grid item xs={8} sx={{ mt: 2 }}>
+              <SpecialRoomBox bgcolor="#f5f5f5">
+                <Typography variant="subtitle1">Schody</Typography>
+              </SpecialRoomBox>
+            </Grid>
           </Grid>
-        ))}
+        </Grid>
+
+        {/* Prawa strona korytarza */}
+        <Grid item xs={6}>
+          <Grid container spacing={2}>
+            <Grid item xs={4}>
+              <RoomBox 
+                color={roomColors.specjalistyczna} 
+                onClick={() => handleRoomSelect('106')}
+                sx={{ border: selectedRoom === '106' ? '3px solid #3f51b5' : 'none' }}
+              >
+                <Typography variant="subtitle1">106</Typography>
+              </RoomBox>
+            </Grid>
+            <Grid item xs={4}>
+              <RoomBox 
+                color={roomColors.zajeta} 
+                onClick={() => handleRoomSelect('107')}
+                sx={{ border: selectedRoom === '107' ? '3px solid #3f51b5' : 'none' }}
+              >
+                <Typography variant="subtitle1">107</Typography>
+              </RoomBox>
+            </Grid>
+            <Grid item xs={4}>
+              <RoomBox 
+                color={roomColors.wolna} 
+                onClick={() => handleRoomSelect('108')}
+                sx={{ border: selectedRoom === '108' ? '3px solid #3f51b5' : 'none' }}
+              >
+                <Typography variant="subtitle1">108</Typography>
+              </RoomBox>
+            </Grid>
+            <Grid item xs={4}>
+              <RoomBox 
+                color={roomColors.zajeta} 
+                onClick={() => handleRoomSelect('109')}
+                sx={{ border: selectedRoom === '109' ? '3px solid #3f51b5' : 'none' }}
+              >
+                <Typography variant="subtitle1">109</Typography>
+              </RoomBox>
+            </Grid>
+            <Grid item xs={4}>
+              <RoomBox 
+                color={roomColors.wolna} 
+                onClick={() => handleRoomSelect('110')}
+                sx={{ border: selectedRoom === '110' ? '3px solid #3f51b5' : 'none' }}
+              >
+                <Typography variant="subtitle1">110</Typography>
+              </RoomBox>
+            </Grid>
+            <Grid item xs={8} sx={{ mt: 2 }}>
+              <SpecialRoomBox bgcolor="#e3f2fd">
+                <Typography variant="subtitle1">Winda</Typography>
+              </SpecialRoomBox>
+            </Grid>
+          </Grid>
+        </Grid>
+      </Grid>
+
+      <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <Chip 
+          label="Zajęta" 
+          sx={{ bgcolor: roomColors.zajeta, color: 'rgba(0, 0, 0, 0.87)' }} 
+        />
+        <Chip 
+          label="Wolna" 
+          sx={{ bgcolor: roomColors.wolna, color: 'rgba(0, 0, 0, 0.87)' }} 
+        />
+        <Chip 
+          label="Specjalistyczna" 
+          sx={{ bgcolor: roomColors.specjalistyczna, color: 'rgba(0, 0, 0, 0.87)' }} 
+        />
+        <Chip 
+          label="Językowa" 
+          sx={{ bgcolor: roomColors.jezykowa, color: 'rgba(0, 0, 0, 0.87)' }} 
+        />
+        <Chip 
+          label="Komputerowa" 
+          sx={{ bgcolor: roomColors.komputerowa, color: 'rgba(0, 0, 0, 0.87)' }} 
+        />
       </Box>
-    );
-  };
+    </Box>
+  );
 
-  // Renderowanie legendy
-  const renderLegend = () => {
-    const legendItems = [
-      { label: 'Zajęta', color: roomColors['zajęta'] },
-      { label: 'Wolna', color: roomColors['wolna'] },
-      { label: 'Specjalistyczna', color: roomColors['specjalistyczna'] },
-      { label: 'Językowa', color: roomColors['językowa'] },
-      { label: 'Komputerowa', color: roomColors['komputerowa'] }
-    ];
+  // Renderowanie szczegółów sali
+  const renderRoomDetails = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Sala {selectedRoom} - Szczegóły
+      </Typography>
 
-    return (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
-        {legendItems.map((item, index) => (
-          <Box key={index} sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-            <Box
-              sx={{
-                width: 16,
-                height: 16,
-                backgroundColor: item.color,
-                mr: 0.5,
-                borderRadius: '2px'
-              }}
-            />
-            <Typography variant="caption">{item.label}</Typography>
-          </Box>
-        ))}
+      <Box sx={{ 
+        height: '200px', 
+        bgcolor: '#f5f5f5', 
+        borderRadius: 1, 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        mb: 3,
+        position: 'relative'
+      }}>
+        <Box sx={{ 
+          position: 'absolute', 
+          top: '50%', 
+          left: '50%', 
+          transform: 'translate(-50%, -50%)',
+          width: '100px',
+          height: '100px',
+          borderRadius: '50%',
+          border: '2px dashed #3f51b5',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          flexDirection: 'column'
+        }}>
+          <Typography variant="body2" color="primary">
+            Podgląd 360° sali
+          </Typography>
+        </Box>
       </Box>
-    );
-  };
 
-  // Renderowanie szczegółów wybranej sali
-  const renderRoomDetails = () => {
-    // Przykładowe dane szczegółowe sali
-    const roomDetails = {
-      id: 103,
-      name: 'Sala 103',
-      type: 'Ogólna',
-      capacity: 30,
-      area: 48,
-      equipment: ['Rzutnik', 'Tablica', 'Klimatyzacja'],
-      temperature: 22.5,
-      humidity: 45,
-      availability: [
-        { date: 'Dzisiaj', times: ['14:35-15:20', '15:30-16:15', '16:25-17:10'] },
-        { date: 'Jutro', times: ['8:00-8:45', '8:55-9:40', '13:40-14:25'] }
-      ]
-    };
+      <Typography variant="subtitle1" gutterBottom>
+        Wyposażenie i parametry
+      </Typography>
 
-    return (
-      <Card sx={{ mt: 2 }}>
-        <CardContent>
-          <Typography variant="h6">{roomDetails.name} - Szczegóły</Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={8}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2">Pojemność: {roomDetails.capacity} osób</Typography>
-              <Typography variant="body2">Powierzchnia: {roomDetails.area}m²</Typography>
+              <Typography variant="body2">Pojemność:</Typography>
+              <Typography variant="body2" fontWeight="bold">30 osób</Typography>
             </Box>
-            
-            <Typography variant="subtitle2" sx={{ mt: 1 }}>Wyposażenie i parametry</Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {roomDetails.equipment.map((item, index) => (
-                <Chip key={index} label={item} size="small" />
-              ))}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Powierzchnia:</Typography>
+              <Typography variant="body2" fontWeight="bold">48m²</Typography>
             </Box>
-            
-            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-              <Typography variant="body2">Temperatura: {roomDetails.temperature}°C</Typography>
-              <Typography variant="body2">Wilgotność: {roomDetails.humidity}%</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Rzutnik:</Typography>
+              <Typography variant="body2" fontWeight="bold">Tak</Typography>
             </Box>
-            
-            <Typography variant="subtitle2" sx={{ mt: 1 }}>Dostępność</Typography>
-            {roomDetails.availability.map((item, index) => (
-              <Box key={index}>
-                <Typography variant="body2">{item.date}: {item.times.join(', ')}</Typography>
-              </Box>
-            ))}
-            
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-              <Button variant="outlined" size="small" sx={{ mr: 1 }}>Pokaż kalendarz</Button>
-              <Button variant="contained" size="small">Zarezerwuj teraz</Button>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Klimatyzacja:</Typography>
+              <Typography variant="body2" fontWeight="bold">Tak</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Wentylacja:</Typography>
+              <Typography variant="body2" fontWeight="bold">45%</Typography>
             </Box>
           </Box>
-        </CardContent>
-      </Card>
-    );
-  };
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ThermostatIcon color="primary" />
+              <Typography variant="body2">Temperatura: 22.5°C</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <WifiIcon color="primary" />
+              <Typography variant="body2">WiFi: Tak</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ComputerIcon color="primary" />
+              <Typography variant="body2">Komputer: Tak</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TableChartIcon color="primary" />
+              <Typography variant="body2">Tablica interaktywna: Tak</Typography>
+            </Box>
+          </Box>
+        </Grid>
+      </Grid>
+
+      <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
+        Statystyki wykorzystania
+      </Typography>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="body2" gutterBottom>
+          Średnia zajętość:
+        </Typography>
+        <Box sx={{ 
+          width: '100%', 
+          height: '20px', 
+          bgcolor: '#f5f5f5', 
+          borderRadius: 5,
+          overflow: 'hidden'
+        }}>
+          <Box sx={{ 
+            width: '70%', 
+            height: '100%', 
+            background: 'linear-gradient(90deg, #f44336 0%, #ff9800 100%)',
+            borderRadius: 5
+          }}></Box>
+        </Box>
+        <Typography variant="caption" color="textSecondary">
+          70% (wysoka)
+        </Typography>
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <Box sx={{ 
+          width: '30px', 
+          height: '30px', 
+          bgcolor: '#f44336', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          color: 'white',
+          borderRadius: 1
+        }}>
+          PON
+        </Box>
+        <Box sx={{ 
+          width: '30px', 
+          height: '30px', 
+          bgcolor: '#ff9800', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          color: 'white',
+          borderRadius: 1
+        }}>
+          WT
+        </Box>
+        <Box sx={{ 
+          width: '30px', 
+          height: '30px', 
+          bgcolor: '#f44336', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          color: 'white',
+          borderRadius: 1
+        }}>
+          ŚR
+        </Box>
+        <Box sx={{ 
+          width: '30px', 
+          height: '30px', 
+          bgcolor: '#ff9800', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          color: 'white',
+          borderRadius: 1
+        }}>
+          CZW
+        </Box>
+        <Box sx={{ 
+          width: '30px', 
+          height: '30px', 
+          bgcolor: '#4caf50', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          color: 'white',
+          borderRadius: 1
+        }}>
+          PT
+        </Box>
+      </Box>
+
+      <Typography variant="subtitle1" gutterBottom>
+        Wzrost temperatury
+      </Typography>
+      <Box sx={{ 
+        width: '100%', 
+        height: '40px', 
+        bgcolor: '#f5f5f5', 
+        borderRadius: 1,
+        position: 'relative',
+        mb: 3
+      }}>
+        <Box sx={{ 
+          position: 'absolute',
+          top: '50%',
+          left: 0,
+          transform: 'translateY(-50%)',
+          width: '100%',
+          height: '2px',
+          bgcolor: '#e0e0e0'
+        }}></Box>
+        <Box sx={{ 
+          position: 'absolute',
+          top: '50%',
+          left: '10%',
+          transform: 'translateY(-50%)',
+          width: '80%',
+          height: '2px',
+          bgcolor: '#f44336'
+        }}>
+          <Box sx={{ 
+            position: 'absolute',
+            top: '-5px',
+            right: 0,
+            width: '12px',
+            height: '12px',
+            borderRadius: '50%',
+            bgcolor: '#f44336'
+          }}></Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+
+  // Renderowanie szybkiej rezerwacji
+  const renderQuickReservation = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Szybka rezerwacja sali {selectedRoom}
+      </Typography>
+      
+      <Box sx={{ 
+        p: 2, 
+        bgcolor: '#e8f5e9', 
+        borderRadius: 1, 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 2
+      }}>
+        <Box>
+          <Typography variant="subtitle2" color="success.main">
+            Aktualnie: Wolna
+          </Typography>
+          <Typography variant="body2">
+            Najbliższe zajęcia: 10:45 - Fizyka
+          </Typography>
+          <Typography variant="body2">
+            Dostępna do szybkiej rezerwacji
+          </Typography>
+        </Box>
+        <Button variant="contained" color="primary">
+          Zarezerwuj teraz
+        </Button>
+      </Box>
+
+      <Typography variant="body2" gutterBottom>
+        Dostępna dzisiaj: 14:35-15:20, 15:30-16:15, 16:25-17:10
+      </Typography>
+      <Typography variant="body2" gutterBottom>
+        Dostępna jutro: 8:00-8:45, 8:55-9:40, 13:40-14:25
+      </Typography>
+
+      <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+        <Button variant="outlined" color="primary">
+          Pokaż kalendarz
+        </Button>
+        <Button variant="outlined" color="success">
+          Udostępnij
+        </Button>
+      </Box>
+    </Box>
+  );
+
+  // Renderowanie bieżących statystyk
+  const renderCurrentStats = () => (
+    <Box sx={{ 
+      p: 2, 
+      bgcolor: '#f5f5f5', 
+      borderRadius: 1, 
+      mb: 3,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 1
+    }}>
+      <Typography variant="subtitle1" gutterBottom>
+        Bieżące statystyki:
+      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="body2">Zajętych sal:</Typography>
+          <Chip 
+            label="12" 
+            color="error" 
+            size="small" 
+            sx={{ fontWeight: 'bold' }} 
+          />
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="body2">Wolnych sal:</Typography>
+          <Chip 
+            label="8" 
+            color="success" 
+            size="small" 
+            sx={{ fontWeight: 'bold' }} 
+          />
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="body2">Temperatura:</Typography>
+          <Chip 
+            label="22.5°" 
+            color="primary" 
+            size="small" 
+            sx={{ fontWeight: 'bold' }} 
+            icon={<ThermostatIcon />}
+          />
+        </Box>
+      </Box>
+    </Box>
+  );
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Super rozbudowana analiza sal
-      </Typography>
-      <Typography variant="subtitle2" sx={{ mb: 2 }}>
-        Liceum Ogólnokształcące im. Jana Kochanowskiego • Warszawa • Semestr letni 2025
-      </Typography>
-
-      <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 2 }}>
-        <Tab label="Mapa 3D" />
-        <Tab label="Analiza zajętości" />
-        <Tab label="Wyposażenie sal" />
-        <Tab label="Rezerwacje" />
-        <Tab label="Rekomendacje AI" />
-      </Tabs>
-
-      {activeTab === 0 && (
+    <StyledContainer maxWidth="xl">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Super rozbudowana analiza sal
+        </Typography>
         <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
-              Piętro {activeFloor} - Podgląd 3D
-            </Typography>
-            <Box>
-              <IconButton onClick={handleZoomOut}>
-                <ZoomOutIcon />
-              </IconButton>
-              <IconButton onClick={handleZoomIn}>
-                <ZoomInIcon />
-              </IconButton>
-            </Box>
-          </Box>
-
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Box sx={{ flex: 3 }}>
-              {loading ? (
-                <Typography>Ładowanie mapy sal...</Typography>
-              ) : error ? (
-                <Typography color="error">{error}</Typography>
-              ) : (
-                renderRoomGrid()
-              )}
-              {renderLegend()}
-            </Box>
-            <Box sx={{ flex: 2 }}>
-              {renderRoomDetails()}
-            </Box>
-          </Box>
-
-          <Box sx={{ mt: 3, display: 'flex', gap: 1 }}>
-            {[1, 2, 3].map(floor => (
-              <Button
-                key={floor}
-                variant={activeFloor === floor ? "contained" : "outlined"}
-                onClick={() => handleFloorChange(floor)}
-              >
-                Piętro {floor}
-              </Button>
-            ))}
-          </Box>
+          <Typography variant="body2" color="textSecondary">
+            Liceum Ogólnokształcące im. Jana Kochanowskiego • Warszawa • Semestr letni 2025
+          </Typography>
         </Box>
-      )}
-    </Box>
+      </Box>
+
+      {renderCurrentStats()}
+
+      <StyledTabsContainer>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
+          aria-label="zakładki analizy sal"
+        >
+          <Tab label="Mapa 3D" />
+          <Tab label="Analiza zajętości" />
+          <Tab label="Wyposażenie sal" />
+          <Tab label="Rezerwacje" />
+          <Tab label="Rekomendacje AI" />
+        </Tabs>
+      </StyledTabsContainer>
+
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={7}>
+          <StyledContentPaper>
+            {activeTab === 0 && render3DMap()}
+          </StyledContentPaper>
+        </Grid>
+        <Grid item xs={12} md={5}>
+          <StyledContentPaper>
+            {renderRoomDetails()}
+          </StyledContentPaper>
+          <StyledContentPaper>
+            {renderQuickReservation()}
+          </StyledContentPaper>
+        </Grid>
+      </Grid>
+    </StyledContainer>
   );
 };
 

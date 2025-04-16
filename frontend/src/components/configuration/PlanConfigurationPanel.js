@@ -1,376 +1,673 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
+  Container, 
   Typography, 
   Paper, 
-  Grid, 
-  Button, 
+  Grid,
+  Button,
   Card,
   CardContent,
   Chip,
+  Divider,
+  Tabs,
+  Tab,
   Slider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   FormControlLabel,
   Checkbox,
-  CircularProgress,
-  Divider
+  TextField,
+  IconButton,
+  Tooltip
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
-import HistoryIcon from '@mui/icons-material/History';
+import { styled } from '@mui/material/styles';
 import TuneIcon from '@mui/icons-material/Tune';
-import ScheduleIcon from '@mui/icons-material/Schedule';
-import SchoolIcon from '@mui/icons-material/School';
-import PersonIcon from '@mui/icons-material/Person';
-import BalanceIcon from '@mui/icons-material/Balance';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import EventIcon from '@mui/icons-material/Event';
+import SchoolIcon from '@mui/icons-material/School';
+import GroupIcon from '@mui/icons-material/Group';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
-import PsychologyIcon from '@mui/icons-material/Psychology';
+import BalanceIcon from '@mui/icons-material/Balance';
+import SpeedIcon from '@mui/icons-material/Speed';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import InfoIcon from '@mui/icons-material/Info';
+import HelpIcon from '@mui/icons-material/Help';
 
-/**
- * Komponent konfiguratora parametrów planu lekcji
- * Umożliwia dostosowanie ustawień generowania planu przez AI
- */
+// Stylizowany kontener
+const StyledContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(4),
+}));
+
+// Stylizowany Paper dla zakładek
+const StyledTabsContainer = styled(Paper)(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+}));
+
+// Stylizowany Paper dla zawartości
+const StyledContentPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+  marginBottom: theme.spacing(3),
+}));
+
+// Stylizowany Slider
+const StyledSlider = styled(Slider)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+}));
+
+// Stylizowany przycisk stylu planu
+const StyleButton = styled(Button)(({ theme, selected }) => ({
+  borderRadius: '50%',
+  width: '80px',
+  height: '80px',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: theme.spacing(1),
+  border: selected ? `2px solid ${theme.palette.primary.main}` : '1px solid #e0e0e0',
+  backgroundColor: selected ? 'rgba(63, 81, 181, 0.08)' : 'white',
+  '&:hover': {
+    backgroundColor: selected ? 'rgba(63, 81, 181, 0.12)' : 'rgba(0, 0, 0, 0.04)',
+  },
+}));
+
+// Komponent konfiguracji planu
 const PlanConfigurationPanel = () => {
-  const theme = useTheme();
-  const [loading, setLoading] = useState(false);
-  const [comfortPriority, setComfortPriority] = useState(70); // 0-100, gdzie 0 to priorytet uczniów, 100 to priorytet nauczycieli
-  const [costOptimization, setCostOptimization] = useState(40); // 0-100, gdzie 0 to wysoki koszt, 100 to niski koszt
-  const [loadDistribution, setLoadDistribution] = useState(20); // 0-100, gdzie 0 to równomierny, 100 to skondensowany
-  const [startTime, setStartTime] = useState(8.25); // 8:15
-  const [maxLessonsPerDay, setMaxLessonsPerDay] = useState(7); // 5-9 lekcji
-  const [lunchBreakDuration, setLunchBreakDuration] = useState(25); // 0-30 minut
-  const [preferences, setPreferences] = useState({
-    avoidDifficultSubjectsAtEnd: true,
-    pePlacementPreference: true,
-    considerTeacherPreferences: false,
-    maximizeSpecialRoomUsage: true
-  });
-  const [recommendedStyle, setRecommendedStyle] = useState('Uczniowski');
-
-  // Symulacja ładowania rekomendacji AI
-  useEffect(() => {
-    const calculateRecommendation = () => {
-      // Logika określająca rekomendowany styl na podstawie ustawień
-      if (comfortPriority < 40) {
-        return 'Uczniowski';
-      } else if (comfortPriority > 70) {
-        return 'Nauczycielski';
-      } else if (costOptimization > 70) {
-        return 'Ekonomiczny';
-      } else {
-        return 'Zbalansowany';
-      }
-    };
-
-    setRecommendedStyle(calculateRecommendation());
-  }, [comfortPriority, costOptimization, loadDistribution]);
-
-  const handlePreferenceChange = (name) => (event) => {
-    setPreferences({
-      ...preferences,
-      [name]: event.target.checked
-    });
+  // Stan dla aktywnej zakładki
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedStyle, setSelectedStyle] = useState('zbalansowany');
+  const [comfortLevel, setComfortLevel] = useState(60);
+  const [startTime, setStartTime] = useState(8.25);
+  const [maxLessons, setMaxLessons] = useState(7);
+  const [psychologicalLoad, setPhysicalLoad] = useState(50);
+  const [lunchBreak, setLunchBreak] = useState(25);
+  
+  // Style planów
+  const planStyles = [
+    { id: 'zbalansowany', label: 'Zbalansowany', icon: <BalanceIcon sx={{ fontSize: 32 }} color="primary" /> },
+    { id: 'ekonomiczny', label: 'Ekonomiczny', icon: <TuneIcon sx={{ fontSize: 32 }} color="primary" /> },
+    { id: 'uczniowski', label: 'Uczniowski', icon: <SchoolIcon sx={{ fontSize: 32 }} color="primary" /> },
+    { id: 'nauczycielski', label: 'Nauczycielski', icon: <GroupIcon sx={{ fontSize: 32 }} color="primary" /> },
+    { id: 'celowany', label: 'Celowany', icon: <SpeedIcon sx={{ fontSize: 32 }} color="primary" /> },
+  ];
+  
+  // Obsługa zmiany zakładki
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
   };
-
-  const handleSaveConfiguration = () => {
-    setLoading(true);
-    
-    // Symulacja zapisywania konfiguracji
-    setTimeout(() => {
-      setLoading(false);
-      // Tutaj byłoby wywołanie API do zapisania konfiguracji
-      console.log('Konfiguracja zapisana:', {
-        comfortPriority,
-        costOptimization,
-        loadDistribution,
-        startTime,
-        maxLessonsPerDay,
-        lunchBreakDuration,
-        preferences
-      });
-    }, 1500);
+  
+  // Obsługa zmiany stylu planu
+  const handleStyleChange = (style) => {
+    setSelectedStyle(style);
   };
-
+  
+  // Obsługa zmiany poziomu komfortu
+  const handleComfortChange = (event, newValue) => {
+    setComfortLevel(newValue);
+  };
+  
+  // Obsługa zmiany godziny rozpoczęcia
+  const handleStartTimeChange = (event, newValue) => {
+    setStartTime(newValue);
+  };
+  
+  // Obsługa zmiany maksymalnej liczby lekcji
+  const handleMaxLessonsChange = (event, newValue) => {
+    setMaxLessons(newValue);
+  };
+  
+  // Obsługa zmiany obciążenia psychicznego
+  const handlePhysicalLoadChange = (event, newValue) => {
+    setPhysicalLoad(newValue);
+  };
+  
+  // Obsługa zmiany długości przerwy obiadowej
+  const handleLunchBreakChange = (event, newValue) => {
+    setLunchBreak(newValue);
+  };
+  
+  // Formatowanie godziny rozpoczęcia
   const formatStartTime = (value) => {
     const hours = Math.floor(value);
     const minutes = Math.round((value - hours) * 60);
-    return `${hours}:${minutes.toString().padStart(2, '0')}`;
+    return `${hours}:${minutes === 0 ? '00' : minutes}`;
   };
-
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h5" sx={{ mb: 1 }}>
+  
+  // Renderowanie zakładki konfiguracji parametrów
+  const renderConfigurationTab = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
         Konfiguracja parametrów planu
       </Typography>
-      <Typography variant="subtitle2" sx={{ mb: 3 }}>
+      <Typography variant="body2" color="textSecondary" paragraph>
         Dostosuj ustawienia aby AI stworzyło optymalny plan dla Twojej szkoły
       </Typography>
-
-      <Grid container spacing={3}>
-        {/* Równowaga i komfort */}
+      
+      <Grid container spacing={4}>
         <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <BalanceIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-                <Typography variant="h6">Równowaga i komfort</Typography>
+          <StyledContentPaper>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <BalanceIcon color="primary" sx={{ mr: 1 }} />
+              <Typography variant="h6">
+                Równowaga i komfort
+              </Typography>
+            </Box>
+            
+            <Typography variant="subtitle1" gutterBottom>
+              Priorytet komfortu
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="body2" sx={{ minWidth: 80 }}>
+                Uczniowie
+              </Typography>
+              <StyledSlider
+                value={comfortLevel}
+                onChange={handleComfortChange}
+                aria-labelledby="comfort-slider"
+                valueLabelDisplay="auto"
+              />
+              <Typography variant="body2" sx={{ minWidth: 80, textAlign: 'right' }}>
+                Nauczyciele
+              </Typography>
+            </Box>
+            
+            <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
+              Optymalizacja kosztowa
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="body2" sx={{ minWidth: 80 }}>
+                Wysoki koszt
+              </Typography>
+              <StyledSlider
+                defaultValue={30}
+                aria-labelledby="cost-slider"
+                valueLabelDisplay="auto"
+              />
+              <Typography variant="body2" sx={{ minWidth: 80, textAlign: 'right' }}>
+                Niski koszt
+              </Typography>
+            </Box>
+            
+            <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
+              Rozkład obciążenia w tygodniu
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="body2" sx={{ minWidth: 80 }}>
+                Równomierny
+              </Typography>
+              <StyledSlider
+                defaultValue={70}
+                aria-labelledby="distribution-slider"
+                valueLabelDisplay="auto"
+              />
+              <Typography variant="body2" sx={{ minWidth: 80, textAlign: 'right' }}>
+                Skondensowany
+              </Typography>
+            </Box>
+          </StyledContentPaper>
+          
+          <StyledContentPaper>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <TuneIcon color="primary" sx={{ mr: 1 }} />
+              <Typography variant="h6">
+                Preferencje dydaktyczne
+              </Typography>
+            </Box>
+            
+            <FormControl component="fieldset">
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <FormControlLabel 
+                  control={<Checkbox defaultChecked />} 
+                  label="Unikaj trudnych przedmiotów pod rząd" 
+                />
+                <FormControlLabel 
+                  control={<Checkbox defaultChecked />} 
+                  label="Planuj WF po przedmiotach statycznych" 
+                />
+                <FormControlLabel 
+                  control={<Checkbox />} 
+                  label="Uwzględnij preferencje nauczycieli" 
+                />
+                <FormControlLabel 
+                  control={<Checkbox defaultChecked />} 
+                  label="Maksymalizuj wykorzystanie sal specjalistycznych" 
+                />
               </Box>
-              
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Priorytet komfortu</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ minWidth: 60 }}>Uczniowie</Typography>
-                  <Slider
-                    value={comfortPriority}
-                    onChange={(e, newValue) => setComfortPriority(newValue)}
-                    aria-labelledby="comfort-priority-slider"
-                    valueLabelDisplay="auto"
-                    sx={{ mx: 2 }}
-                  />
-                  <Typography variant="caption" sx={{ minWidth: 70 }}>Nauczyciele</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Optymalizacja kosztowa</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ minWidth: 60 }}>Wysoki koszt</Typography>
-                  <Slider
-                    value={costOptimization}
-                    onChange={(e, newValue) => setCostOptimization(newValue)}
-                    aria-labelledby="cost-optimization-slider"
-                    valueLabelDisplay="auto"
-                    sx={{ mx: 2 }}
-                  />
-                  <Typography variant="caption" sx={{ minWidth: 70 }}>Niski koszt</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ mb: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Rozkład obciążenia w tygodniu</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ minWidth: 60 }}>Równomierny</Typography>
-                  <Slider
-                    value={loadDistribution}
-                    onChange={(e, newValue) => setLoadDistribution(newValue)}
-                    aria-labelledby="load-distribution-slider"
-                    valueLabelDisplay="auto"
-                    sx={{ mx: 2 }}
-                  />
-                  <Typography variant="caption" sx={{ minWidth: 70 }}>Skondensowany</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
+            </FormControl>
+          </StyledContentPaper>
         </Grid>
-
-        {/* Harmonogram czasowy */}
+        
         <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <ScheduleIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-                <Typography variant="h6">Harmonogram czasowy</Typography>
-              </Box>
-              
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Godzina rozpoczęcia zajęć</Typography>
-                  <Typography variant="body2" fontWeight="bold">{formatStartTime(startTime)}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ minWidth: 30 }}>7:00</Typography>
-                  <Slider
-                    value={startTime}
-                    onChange={(e, newValue) => setStartTime(newValue)}
-                    aria-labelledby="start-time-slider"
-                    min={7}
-                    max={9}
-                    step={0.25}
-                    valueLabelDisplay="auto"
-                    valueLabelFormat={formatStartTime}
-                    sx={{ mx: 2 }}
-                  />
-                  <Typography variant="caption" sx={{ minWidth: 30 }}>9:00</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Maksymalna liczba lekcji dziennie</Typography>
-                  <Typography variant="body2" fontWeight="bold">{maxLessonsPerDay} lekcji</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ minWidth: 30 }}>5</Typography>
-                  <Slider
-                    value={maxLessonsPerDay}
-                    onChange={(e, newValue) => setMaxLessonsPerDay(newValue)}
-                    aria-labelledby="max-lessons-slider"
-                    min={5}
-                    max={9}
-                    step={1}
-                    marks
-                    valueLabelDisplay="auto"
-                    sx={{ mx: 2 }}
-                  />
-                  <Typography variant="caption" sx={{ minWidth: 30 }}>9</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ mb: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Długość przerwy obiadowej</Typography>
-                  <Typography variant="body2" fontWeight="bold">{lunchBreakDuration} min</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ minWidth: 30 }}>Brak</Typography>
-                  <Slider
-                    value={lunchBreakDuration}
-                    onChange={(e, newValue) => setLunchBreakDuration(newValue)}
-                    aria-labelledby="lunch-break-slider"
-                    min={0}
-                    max={30}
-                    step={5}
-                    valueLabelDisplay="auto"
-                    sx={{ mx: 2 }}
-                  />
-                  <Typography variant="caption" sx={{ minWidth: 30 }}>30 min</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Preferencje dydaktyczne */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <PsychologyIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-                <Typography variant="h6">Preferencje dydaktyczne</Typography>
-              </Box>
-              
-              <FormControlLabel
-                control={
-                  <Checkbox 
-                    checked={preferences.avoidDifficultSubjectsAtEnd} 
-                    onChange={handlePreferenceChange('avoidDifficultSubjectsAtEnd')} 
-                  />
-                }
-                label="Unikaj trudnych przedmiotów pod rząd"
+          <StyledContentPaper>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <AccessTimeIcon color="primary" sx={{ mr: 1 }} />
+              <Typography variant="h6">
+                Harmonogram czasowy
+              </Typography>
+            </Box>
+            
+            <Typography variant="subtitle1" gutterBottom>
+              Godzina rozpoczęcia zajęć
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="body2" sx={{ minWidth: 30 }}>
+                7:00
+              </Typography>
+              <StyledSlider
+                value={startTime}
+                onChange={handleStartTimeChange}
+                aria-labelledby="start-time-slider"
+                valueLabelDisplay="auto"
+                valueLabelFormat={formatStartTime}
+                step={0.25}
+                marks={[
+                  { value: 7, label: '7:00' },
+                  { value: 8, label: '8:00' },
+                  { value: 9, label: '9:00' },
+                ]}
+                min={7}
+                max={9}
               />
-              
-              <FormControlLabel
-                control={
-                  <Checkbox 
-                    checked={preferences.pePlacementPreference} 
-                    onChange={handlePreferenceChange('pePlacementPreference')} 
-                  />
-                }
-                label="Planuj WF po przedmiotach statycznych"
+              <Typography variant="body2" sx={{ minWidth: 30, textAlign: 'right' }}>
+                9:00
+              </Typography>
+            </Box>
+            
+            <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
+              Maksymalna liczba lekcji dziennie
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="body2" sx={{ minWidth: 30 }}>
+                5
+              </Typography>
+              <StyledSlider
+                value={maxLessons}
+                onChange={handleMaxLessonsChange}
+                aria-labelledby="max-lessons-slider"
+                valueLabelDisplay="auto"
+                step={1}
+                marks={[
+                  { value: 5, label: '5 lekcji' },
+                  { value: 7, label: '7 lekcji' },
+                  { value: 9, label: '9 lekcji' },
+                ]}
+                min={5}
+                max={9}
               />
-              
-              <FormControlLabel
-                control={
-                  <Checkbox 
-                    checked={preferences.considerTeacherPreferences} 
-                    onChange={handlePreferenceChange('considerTeacherPreferences')} 
-                  />
-                }
-                label="Uwzględnij preferencje nauczycieli"
+              <Typography variant="body2" sx={{ minWidth: 30, textAlign: 'right' }}>
+                9
+              </Typography>
+            </Box>
+            
+            <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
+              Długość przerwy obiadowej
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="body2" sx={{ minWidth: 30 }}>
+                Brak
+              </Typography>
+              <StyledSlider
+                value={lunchBreak}
+                onChange={handleLunchBreakChange}
+                aria-labelledby="lunch-break-slider"
+                valueLabelDisplay="auto"
+                valueLabelFormat={(value) => `${value} min`}
+                step={5}
+                marks={[
+                  { value: 0, label: 'Brak' },
+                  { value: 25, label: '25 min' },
+                  { value: 30, label: '30 min' },
+                ]}
+                min={0}
+                max={30}
               />
-              
-              <FormControlLabel
-                control={
-                  <Checkbox 
-                    checked={preferences.maximizeSpecialRoomUsage} 
-                    onChange={handlePreferenceChange('maximizeSpecialRoomUsage')} 
-                  />
-                }
-                label="Maksymalizuj wykorzystanie sal specjalistycznych"
-              />
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Rekomendacja AI */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.contrastText }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AutoFixHighIcon sx={{ mr: 1 }} />
-                <Typography variant="h6">Rekomendacja AI</Typography>
-              </Box>
-              
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ minWidth: 30, textAlign: 'right' }}>
+                30 min
+              </Typography>
+            </Box>
+          </StyledContentPaper>
+          
+          <StyledContentPaper>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <SmartToyIcon color="primary" sx={{ mr: 1 }} />
+              <Typography variant="h6">
+                Rekomendacja AI
+              </Typography>
+            </Box>
+            
+            <Box sx={{ p: 2, bgcolor: 'rgba(63, 81, 181, 0.05)', borderRadius: 1 }}>
+              <Typography variant="subtitle1" gutterBottom>
                 Na podstawie Twoich ustawień i charakterystyki szkoły AI sugeruje:
               </Typography>
               
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', my: 3 }}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                  Styl {recommendedStyle}
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <Typography variant="h6" color="primary" sx={{ mr: 1 }}>
+                  Styl Uczniowski
                 </Typography>
-                <Chip 
-                  label="optymalny dla Twojej szkoły" 
-                  sx={{ ml: 1, bgcolor: theme.palette.primary.dark, color: 'white' }} 
-                />
+                <Typography variant="body2">
+                  - optymalny dla Twojej szkoły
+                </Typography>
               </Box>
               
-              <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 2 }}>
-                Możesz zastosować tę rekomendację lub dostosować parametry według własnych preferencji.
+              <Typography variant="body2" paragraph>
+                Ten styl priorytetyzuje komfort uczniów, równomierne rozłożenie trudnych przedmiotów i optymalne wykorzystanie sal specjalistycznych.
               </Typography>
-            </CardContent>
-          </Card>
+              
+              <Button 
+                variant="outlined" 
+                color="primary" 
+                startIcon={<HelpIcon />}
+                size="small"
+              >
+                Zapytaj AI o poradę
+              </Button>
+            </Box>
+          </StyledContentPaper>
         </Grid>
       </Grid>
-
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <Button 
-          variant="outlined" 
-          color="error" 
-          sx={{ mr: 2 }}
-          onClick={() => {
-            setComfortPriority(50);
-            setCostOptimization(50);
-            setLoadDistribution(50);
-            setStartTime(8);
-            setMaxLessonsPerDay(7);
-            setLunchBreakDuration(20);
-            setPreferences({
-              avoidDifficultSubjectsAtEnd: true,
-              pePlacementPreference: true,
-              considerTeacherPreferences: true,
-              maximizeSpecialRoomUsage: true
-            });
-          }}
-        >
-          Resetuj
-        </Button>
-        <Button 
-          variant="contained" 
-          color="success"
-          sx={{ mr: 2 }}
-          onClick={handleSaveConfiguration}
-          disabled={loading}
-        >
-          {loading ? <CircularProgress size={24} /> : 'Zapisz konfigurację'}
-        </Button>
-        <Button 
-          variant="contained" 
-          color="primary"
-          onClick={() => {}}
-        >
-          Generuj plan
-        </Button>
+    </Box>
+  );
+  
+  // Renderowanie zakładki wyboru stylu
+  const renderStyleTab = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Styl planu:
+      </Typography>
+      
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', my: 3 }}>
+        {planStyles.map((style) => (
+          <Box key={style.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <StyleButton
+              selected={selectedStyle === style.id}
+              onClick={() => handleStyleChange(style.id)}
+            >
+              {style.icon}
+            </StyleButton>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              {style.label}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+      
+      <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+        Parametry planu:
+      </Typography>
+      
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <BalanceIcon color="primary" sx={{ mr: 1 }} />
+            <Typography variant="body1">
+              Koszt vs Komfort
+            </Typography>
+          </Box>
+          <StyledSlider
+            defaultValue={60}
+            aria-labelledby="cost-comfort-slider"
+            valueLabelDisplay="auto"
+            marks={[
+              { value: 0, label: 'Z' },
+              { value: 100, label: 'K' },
+            ]}
+          />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <AccessTimeIcon color="primary" sx={{ mr: 1 }} />
+            <Typography variant="body1">
+              Godzina rozpoczęcia lekcji
+            </Typography>
+          </Box>
+          <StyledSlider
+            defaultValue={8}
+            aria-labelledby="start-time-slider"
+            valueLabelDisplay="auto"
+            step={0.25}
+            marks={[
+              { value: 7, label: '7:00' },
+              { value: 8, label: '8:00' },
+              { value: 9, label: '9:00' },
+            ]}
+            min={7}
+            max={9}
+            valueLabelFormat={formatStartTime}
+          />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <EventIcon color="primary" sx={{ mr: 1 }} />
+            <Typography variant="body1">
+              Maks. liczba lekcji dziennie
+            </Typography>
+          </Box>
+          <StyledSlider
+            defaultValue={7}
+            aria-labelledby="max-lessons-slider"
+            valueLabelDisplay="auto"
+            step={1}
+            marks={[
+              { value: 5, label: '5' },
+              { value: 7, label: '7' },
+              { value: 9, label: '9' },
+            ]}
+            min={5}
+            max={9}
+          />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <SpeedIcon color="primary" sx={{ mr: 1 }} />
+            <Typography variant="body1">
+              Obciążenie psychiczne
+            </Typography>
+          </Box>
+          <StyledSlider
+            defaultValue={50}
+            aria-labelledby="psychological-load-slider"
+            valueLabelDisplay="auto"
+            marks={[
+              { value: 0, label: 'N' },
+              { value: 100, label: 'W' },
+            ]}
+          />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <RestaurantIcon color="primary" sx={{ mr: 1 }} />
+            <Typography variant="body1">
+              Przerwa obiadowa
+            </Typography>
+          </Box>
+          <StyledSlider
+            defaultValue={25}
+            aria-labelledby="lunch-break-slider"
+            valueLabelDisplay="auto"
+            valueLabelFormat={(value) => `${value} min`}
+            step={5}
+            marks={[
+              { value: 0, label: 'Brak' },
+              { value: 25, label: '25 min' },
+              { value: 30, label: '30 min' },
+            ]}
+            min={0}
+            max={30}
+          />
+        </Grid>
+      </Grid>
+      
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Podgląd planu - klasa 2A (LO)
+        </Typography>
+        
+        <Box sx={{ 
+          width: '100%', 
+          overflowX: 'auto',
+          mt: 2,
+          '& table': {
+            borderCollapse: 'collapse',
+            width: '100%',
+          },
+          '& th, & td': {
+            border: '1px solid #e0e0e0',
+            padding: '8px',
+            textAlign: 'center',
+          },
+          '& th': {
+            backgroundColor: '#3f51b5',
+            color: 'white',
+          },
+        }}>
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Poniedziałek</th>
+                <th>Wtorek</th>
+                <th>Środa</th>
+                <th>Czwartek</th>
+                <th>Piątek</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ backgroundColor: '#f5f5f5' }}>8:00 - 8:45</td>
+                <td style={{ backgroundColor: '#e3f2fd' }}>Matematyka</td>
+                <td style={{ backgroundColor: '#f8bbd0' }}>Polski</td>
+                <td style={{ backgroundColor: '#c8e6c9' }}>Angielski</td>
+                <td style={{ backgroundColor: '#f8bbd0' }}>Polski</td>
+                <td style={{ backgroundColor: '#ffecb3' }}>Historia</td>
+              </tr>
+              <tr>
+                <td style={{ backgroundColor: '#f5f5f5' }}>8:55 - 9:40</td>
+                <td style={{ backgroundColor: '#f8bbd0' }}>Polski</td>
+                <td style={{ backgroundColor: '#f8bbd0' }}>Polski</td>
+                <td style={{ backgroundColor: '#c8e6c9' }}>Geografia</td>
+                <td style={{ backgroundColor: '#e3f2fd' }}>Informatyka</td>
+                <td style={{ backgroundColor: '#e3f2fd' }}>Biologia</td>
+              </tr>
+              <tr>
+                <td style={{ backgroundColor: '#f5f5f5' }}>9:50 - 10:35</td>
+                <td style={{ backgroundColor: '#c8e6c9' }}>Angielski</td>
+                <td style={{ backgroundColor: '#e3f2fd' }}>Matematyka</td>
+                <td style={{ backgroundColor: '#ffecb3' }}>Historia</td>
+                <td style={{ backgroundColor: '#c8e6c9' }}>Biologia</td>
+                <td style={{ backgroundColor: '#e3f2fd' }}>Matematyka</td>
+              </tr>
+              <tr>
+                <td style={{ backgroundColor: '#f5f5f5' }}>10:45 - 11:30</td>
+                <td style={{ backgroundColor: '#ffe0b2' }}>Fizyka</td>
+                <td style={{ backgroundColor: '#e3f2fd' }}>Informatyka</td>
+                <td style={{ backgroundColor: '#e3f2fd' }}>Chemia</td>
+                <td style={{ backgroundColor: '#ffe0b2' }}>Fizyka</td>
+                <td style={{ backgroundColor: '#e3f2fd' }}>Matematyka</td>
+              </tr>
+              <tr>
+                <td style={{ backgroundColor: '#f5f5f5' }}>11:50 - 12:35</td>
+                <td style={{ backgroundColor: '#ffecb3' }}>Historia</td>
+                <td style={{ backgroundColor: '#d1c4e9' }}>WF</td>
+                <td style={{ backgroundColor: '#e3f2fd' }}>Matematyka</td>
+                <td style={{ backgroundColor: '#d1c4e9' }}>WF</td>
+                <td style={{ backgroundColor: '#e8eaf6' }}>Religia</td>
+              </tr>
+              <tr>
+                <td style={{ backgroundColor: '#f5f5f5' }}>12:45 - 13:30</td>
+                <td style={{ backgroundColor: '#d1c4e9' }}>WF</td>
+                <td style={{ backgroundColor: '#e8eaf6' }}>Chemia</td>
+                <td style={{ backgroundColor: '#e8eaf6' }}>Religia</td>
+                <td style={{ backgroundColor: '#e8eaf6' }}>Fizyka</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </Box>
+        
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
+          <Button variant="outlined" color="error">
+            Resetuj
+          </Button>
+          <Button variant="outlined" color="primary">
+            Zapisz konfigurację
+          </Button>
+          <Button variant="contained" color="primary">
+            Generuj plan
+          </Button>
+          <Button variant="text" color="primary" startIcon={<SmartToyIcon />}>
+            Zapytaj AI o poradę
+          </Button>
+        </Box>
       </Box>
     </Box>
+  );
+  
+  return (
+    <StyledContainer maxWidth="lg">
+      <Typography variant="h4" gutterBottom>
+        Konfiguracja planu lekcji
+      </Typography>
+      <Typography variant="body1" color="textSecondary" paragraph>
+        Zmień parametry aby dostosować sposób generowania planu
+      </Typography>
+      
+      <StyledTabsContainer>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
+          aria-label="zakładki konfiguracji planu"
+        >
+          <Tab label="Typ szkoły" />
+          <Tab label="Styl planu" />
+          <Tab label="Parametry" />
+          <Tab label="Preferencje" />
+          <Tab label="Zaawansowane" />
+        </Tabs>
+      </StyledTabsContainer>
+      
+      <StyledContentPaper>
+        <Box sx={{ mb: 3 }}>
+          <FormControl fullWidth variant="outlined">
+            <InputLabel>Typ szkoły:</InputLabel>
+            <Select
+              value="liceum"
+              label="Typ szkoły:"
+            >
+              <MenuItem value="liceum">Liceum ogólnokształcące</MenuItem>
+              <MenuItem value="technikum">Technikum</MenuItem>
+              <MenuItem value="podstawowa">Szkoła podstawowa</MenuItem>
+              <MenuItem value="zawodowa">Szkoła zawodowa</MenuItem>
+            </Select>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <InfoIcon color="primary" sx={{ mr: 1 }} />
+            <Typography variant="body2" color="primary">
+              Rekomendacja AI: Styl zbalansowany najlepszy dla liceum
+            </Typography>
+          </Box>
+        </Box>
+        
+        {activeTab === 0 && renderConfigurationTab()}
+        {activeTab === 1 && renderStyleTab()}
+      </StyledContentPaper>
+    </StyledContainer>
   );
 };
 

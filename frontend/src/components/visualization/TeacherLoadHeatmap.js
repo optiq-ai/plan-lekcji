@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
+  Container, 
   Typography, 
   Paper, 
-  Grid, 
-  Card, 
-  CardContent,
+  Grid,
   Button,
-  Tooltip,
-  IconButton,
+  Card,
+  CardContent,
   Chip,
-  Divider
+  Divider,
+  Tabs,
+  Tab,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  IconButton,
+  Tooltip
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
 import { 
   BarChart, 
   Bar, 
@@ -22,328 +30,361 @@ import {
   Tooltip as RechartsTooltip, 
   Legend, 
   ResponsiveContainer,
+  PieChart,
+  Pie,
   Cell
 } from 'recharts';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import DownloadIcon from '@mui/icons-material/Download';
-import PrintIcon from '@mui/icons-material/Print';
 import InfoIcon from '@mui/icons-material/Info';
 import WarningIcon from '@mui/icons-material/Warning';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import EventIcon from '@mui/icons-material/Event';
+import SchoolIcon from '@mui/icons-material/School';
+import GroupIcon from '@mui/icons-material/Group';
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
-/**
- * Komponent wizualizacji obciążenia nauczycieli w formie heatmapy
- * Pokazuje rozkład zajęć i obciążenie nauczycieli w różnych dniach i godzinach
- */
+// Stylizowany kontener
+const StyledContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(4),
+}));
+
+// Stylizowany Paper dla zakładek
+const StyledTabsContainer = styled(Paper)(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+}));
+
+// Stylizowany Paper dla zawartości
+const StyledContentPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+  marginBottom: theme.spacing(3),
+}));
+
+// Kolory dla wykresów
+const COLORS = ['#3f51b5', '#f44336', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4'];
+
+// Dane dla heatmapy obciążenia nauczycieli
+const teacherLoadData = [
+  { day: 'Poniedziałek', '8:00-9:40': 'low', '9:50-11:30': 'low', '11:50-13:30': 'medium', '13:40-15:20': 'low', '15:30-17:10': 'high' },
+  { day: 'Wtorek', '8:00-9:40': 'low', '9:50-11:30': 'low', '11:50-13:30': 'high', '13:40-15:20': 'low', '15:30-17:10': 'low' },
+  { day: 'Środa', '8:00-9:40': 'high', '9:50-11:30': 'medium', '11:50-13:30': 'low', '13:40-15:20': 'low', '15:30-17:10': 'medium' },
+  { day: 'Czwartek', '8:00-9:40': 'medium', '9:50-11:30': 'medium', '11:50-13:30': 'low', '13:40-15:20': 'low', '15:30-17:10': 'low' },
+  { day: 'Piątek', '8:00-9:40': 'low', '9:50-11:30': 'high', '11:50-13:30': 'medium', '13:40-15:20': 'low', '15:30-17:10': 'low' },
+];
+
+// Dane dla wykresu obciążenia uczniów
+const studentLoadData = [
+  { name: '1A', load: 'optimal' },
+  { name: '1B', load: 'high' },
+  { name: '2A', load: 'optimal' },
+  { name: '2B', load: 'medium' },
+  { name: '3A', load: 'high' },
+  { name: '3B', load: 'optimal' },
+];
+
+// Dane dla wykresu rozkładu przedmiotów w tygodniu
+const subjectDistributionData = [
+  { day: 'PON', '1A': 3, '2B': 4, '3C': 2 },
+  { day: 'WT', '1A': 4, '2B': 2, '3C': 3 },
+  { day: 'ŚR', '1A': 3, '2B': 3, '3C': 4 },
+  { day: 'CZW', '1A': 5, '2B': 3, '3C': 2 },
+  { day: 'PT', '1A': 2, '2B': 5, '3C': 3 },
+];
+
+// Dane dla wykresu prognozowanych konfliktów
+const conflictForecastData = [
+  { week: 1, conflicts: 5 },
+  { week: 2, conflicts: 3 },
+  { week: 3, conflicts: 7 },
+  { week: 4, conflicts: 4 },
+  { week: 5, conflicts: 6 },
+  { week: 6, conflicts: 8 },
+  { week: 7, conflicts: 5 },
+  { week: 8, conflicts: 3 },
+  { week: 9, conflicts: 4 },
+  { week: 10, conflicts: 7 },
+  { week: 11, conflicts: 5 },
+  { week: 12, conflicts: 6 },
+];
+
+// Dane dla wykresu wykorzystania sal
+const roomUtilizationData = [
+  { name: 'W pełni wykorzystane', value: 42, color: '#f44336' },
+  { name: 'Częściowo wykorzystane', value: 23, color: '#ffcdd2' },
+  { name: 'Niewykorzystane', value: 27, color: '#ffffff' },
+  { name: 'Zarezerwowane', value: 5, color: '#bbdefb' },
+  { name: 'Nieczynn/Remont', value: 3, color: '#9e9e9e' },
+];
+
+// Komponent heatmapy obciążenia nauczycieli
 const TeacherLoadHeatmap = () => {
-  const theme = useTheme();
-  const [period, setPeriod] = useState('Bieżący semestr');
-  const [department, setDepartment] = useState('Wszyscy nauczyciele');
-  const [heatmapData, setHeatmapData] = useState([]);
-  const [criticalAreas, setCriticalAreas] = useState([]);
-
-  // Kolory dla różnych poziomów obciążenia
-  const loadColors = {
-    'Niskie obciążenie': theme.palette.success.light,
-    'Optymalne': theme.palette.success.main,
-    'Podwyższone': theme.palette.warning.light,
-    'Krytyczne': theme.palette.error.main
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedPeriod, setSelectedPeriod] = useState('Bieżący semestr');
+  const [selectedDepartment, setSelectedDepartment] = useState('Wszyscy nauczyciele');
+  
+  // Obsługa zmiany zakładki
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
   };
-
-  // Symulacja danych heatmapy
-  useEffect(() => {
-    // W rzeczywistej aplikacji dane byłyby pobierane z API
-    const mockHeatmapData = [
-      { 
-        id: 1, 
-        timeSlot: '8:00-9:40', 
-        monday: 'Niskie obciążenie', 
-        tuesday: 'Niskie obciążenie', 
-        wednesday: 'Krytyczne', 
-        thursday: 'Podwyższone', 
-        friday: 'Niskie obciążenie' 
-      },
-      { 
-        id: 2, 
-        timeSlot: '9:50-11:30', 
-        monday: 'Niskie obciążenie', 
-        tuesday: 'Optymalne', 
-        wednesday: 'Optymalne', 
-        thursday: 'Optymalne', 
-        friday: 'Krytyczne' 
-      },
-      { 
-        id: 3, 
-        timeSlot: '11:50-13:30', 
-        monday: 'Podwyższone', 
-        tuesday: 'Podwyższone', 
-        wednesday: 'Niskie obciążenie', 
-        thursday: 'Podwyższone', 
-        friday: 'Optymalne' 
-      },
-      { 
-        id: 4, 
-        timeSlot: '13:40-15:20', 
-        monday: 'Optymalne', 
-        tuesday: 'Niskie obciążenie', 
-        wednesday: 'Optymalne', 
-        thursday: 'Niskie obciążenie', 
-        friday: 'Niskie obciążenie' 
-      },
-      { 
-        id: 5, 
-        timeSlot: '15:30-17:10', 
-        monday: 'Krytyczne', 
-        tuesday: 'Optymalne', 
-        wednesday: 'Optymalne', 
-        thursday: 'Podwyższone', 
-        friday: 'Niskie obciążenie' 
-      }
-    ];
-
-    // Symulacja obszarów krytycznego obciążenia
-    const mockCriticalAreas = [
-      {
-        day: 'Środa',
-        time: '8:00-9:40',
-        description: '7 nauczycieli ma zajęcia, 2 klasy bez nauczyciela',
-        suggestion: 'Przesuń j.angielski 1B, 2C na wtorek'
-      },
-      {
-        day: 'Piątek',
-        time: '9:50-11:30',
-        description: 'Zbyt dużo przedmiotów ścisłych dla klas 1A, 1B, 3C',
-        suggestion: 'Zamiana z WF w poniedziałek'
-      },
-      {
-        day: 'Poniedziałek',
-        time: '15:30-17:10',
-        description: 'Nauczyciele matematyki przeciążeni - 3 klasy równocześnie',
-        suggestion: 'Rozłóż równomiernie na tydzień'
-      }
-    ];
-
-    setHeatmapData(mockHeatmapData);
-    setCriticalAreas(mockCriticalAreas);
-  }, [period, department]);
-
-  return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5">Statystyki obciążenia</Typography>
-        <Box>
-          <Tooltip title="Wydrukuj raport">
-            <IconButton>
-              <PrintIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Eksportuj do PDF">
-            <IconButton>
-              <DownloadIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
+  
+  // Obsługa zmiany okresu
+  const handlePeriodChange = (event) => {
+    setSelectedPeriod(event.target.value);
+  };
+  
+  // Obsługa zmiany działu
+  const handleDepartmentChange = (event) => {
+    setSelectedDepartment(event.target.value);
+  };
+  
+  // Renderowanie komórki heatmapy
+  const renderHeatmapCell = (value) => {
+    let bgcolor = '#4caf50'; // zielony dla niskiego obciążenia
+    let textColor = 'white';
+    
+    if (value === 'medium') {
+      bgcolor = '#ff9800'; // pomarańczowy dla średniego obciążenia
+    } else if (value === 'high') {
+      bgcolor = '#f44336'; // czerwony dla wysokiego obciążenia
+    }
+    
+    return (
+      <Box sx={{ 
+        bgcolor, 
+        color: textColor, 
+        p: 2, 
+        height: '100%', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        borderRadius: '4px',
+      }}>
+        {value === 'low' && 'Niskie obciążenie'}
+        {value === 'medium' && 'Podwyższone'}
+        {value === 'high' && 'Krytyczne'}
       </Box>
-
-      <Typography variant="subtitle1" sx={{ mb: 2 }}>
+    );
+  };
+  
+  return (
+    <StyledContainer maxWidth="lg">
+      <Typography variant="h4" gutterBottom>
+        Statystyki obciążenia
+      </Typography>
+      <Typography variant="body1" color="textSecondary" paragraph>
         Analiza obciążenia nauczycieli i uczniów w roku szkolnym 2025/2026
       </Typography>
-
+      
+      <StyledTabsContainer>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
+          aria-label="zakładki statystyk obciążenia"
+        >
+          <Tab label="Obciążenie nauczycieli i uczniów" />
+          <Tab label="Wykorzystanie sal" />
+          <Tab label="Efektywność dydaktyczna" />
+          <Tab label="Raporty i wydruki" />
+        </Tabs>
+      </StyledTabsContainer>
+      
       <Grid container spacing={3}>
-        <Grid item xs={12} lg={8}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Obciążenie nauczycieli (heatmapa)
-              </Typography>
-              
-              <Box sx={{ overflowX: 'auto' }}>
-                <Box sx={{ minWidth: 600 }}>
-                  <Box sx={{ display: 'flex', mb: 1 }}>
-                    <Box sx={{ width: 100 }}></Box>
-                    <Box sx={{ flex: 1, display: 'flex' }}>
-                      <Typography variant="body2" sx={{ flex: 1, textAlign: 'center', fontWeight: 'bold' }}>Poniedziałek</Typography>
-                      <Typography variant="body2" sx={{ flex: 1, textAlign: 'center', fontWeight: 'bold' }}>Wtorek</Typography>
-                      <Typography variant="body2" sx={{ flex: 1, textAlign: 'center', fontWeight: 'bold' }}>Środa</Typography>
-                      <Typography variant="body2" sx={{ flex: 1, textAlign: 'center', fontWeight: 'bold' }}>Czwartek</Typography>
-                      <Typography variant="body2" sx={{ flex: 1, textAlign: 'center', fontWeight: 'bold' }}>Piątek</Typography>
-                    </Box>
-                  </Box>
-                  
-                  {heatmapData.map((row) => (
-                    <Box key={row.id} sx={{ display: 'flex', mb: 1 }}>
-                      <Box sx={{ width: 100, display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body2">{row.timeSlot}</Typography>
-                      </Box>
-                      <Box sx={{ flex: 1, display: 'flex' }}>
-                        <Box sx={{ 
-                          flex: 1, 
-                          bgcolor: loadColors[row.monday], 
-                          height: 50, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          mx: 0.5,
-                          borderRadius: 1
-                        }}>
-                        </Box>
-                        <Box sx={{ 
-                          flex: 1, 
-                          bgcolor: loadColors[row.tuesday], 
-                          height: 50, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          mx: 0.5,
-                          borderRadius: 1
-                        }}>
-                        </Box>
-                        <Box sx={{ 
-                          flex: 1, 
-                          bgcolor: loadColors[row.wednesday], 
-                          height: 50, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          mx: 0.5,
-                          borderRadius: 1
-                        }}>
-                        </Box>
-                        <Box sx={{ 
-                          flex: 1, 
-                          bgcolor: loadColors[row.thursday], 
-                          height: 50, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          mx: 0.5,
-                          borderRadius: 1
-                        }}>
-                        </Box>
-                        <Box sx={{ 
-                          flex: 1, 
-                          bgcolor: loadColors[row.friday], 
-                          height: 50, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          mx: 0.5,
-                          borderRadius: 1
-                        }}>
-                        </Box>
-                      </Box>
-                    </Box>
-                  ))}
-                  
-                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                    {Object.entries(loadColors).map(([label, color]) => (
-                      <Box key={label} sx={{ display: 'flex', alignItems: 'center', mx: 1 }}>
-                        <Box sx={{ width: 16, height: 16, bgcolor: color, mr: 0.5, borderRadius: 0.5 }}></Box>
-                        <Typography variant="caption">{label}</Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
+            <InputLabel>Okres:</InputLabel>
+            <Select
+              value={selectedPeriod}
+              onChange={handlePeriodChange}
+              label="Okres:"
+            >
+              <MenuItem value="Bieżący semestr">Bieżący semestr</MenuItem>
+              <MenuItem value="Cały rok szkolny">Cały rok szkolny</MenuItem>
+              <MenuItem value="Ostatni miesiąc">Ostatni miesiąc</MenuItem>
+            </Select>
+          </FormControl>
         </Grid>
-
-        <Grid item xs={12} lg={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Obszary krytycznego obciążenia
-              </Typography>
-              
-              {criticalAreas.map((area, index) => (
-                <Box key={index} sx={{ mb: 2, p: 2, bgcolor: theme.palette.background.default, borderRadius: 1 }}>
-                  <Typography variant="subtitle2" color="error" sx={{ display: 'flex', alignItems: 'center' }}>
-                    <WarningIcon fontSize="small" sx={{ mr: 0.5 }} />
-                    {area.day} {area.time}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    {area.description}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 1, color: theme.palette.primary.main, fontWeight: 'bold' }}>
-                    Sugestia: {area.suggestion}
-                  </Typography>
-                </Box>
-              ))}
-              
-              <Button 
-                variant="contained" 
-                color="primary" 
-                fullWidth 
-                sx={{ mt: 2 }}
-              >
-                Zoptymalizuj automatycznie
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Obciążenie uczniów (trudność przedmiotów w ciągu dnia)
-              </Typography>
-              
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={[
-                    { name: 'Poniedziałek', '1A': 3.2, '2B': 4.5, '3C': 2.8 },
-                    { name: 'Wtorek', '1A': 4.1, '2B': 3.2, '3C': 3.5 },
-                    { name: 'Środa', '1A': 3.8, '2B': 4.8, '3C': 4.2 },
-                    { name: 'Czwartek', '1A': 4.5, '2B': 3.1, '3C': 3.9 },
-                    { name: 'Piątek', '1A': 2.9, '2B': 3.8, '3C': 4.7 }
-                  ]}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <RechartsTooltip />
-                  <Legend />
-                  <Bar dataKey="1A" fill={theme.palette.primary.main} name="Klasa 1A" />
-                  <Bar dataKey="2B" fill={theme.palette.error.main} name="Klasa 2B" />
-                  <Bar dataKey="3C" fill={theme.palette.success.main} name="Klasa 3C" />
-                </BarChart>
-              </ResponsiveContainer>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }}>
-                  <Box sx={{ width: 40, height: 4, bgcolor: theme.palette.success.light, mr: 1 }}></Box>
-                  <Typography variant="caption">Niskie</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', mx: 3 }}>
-                  <Box sx={{ 
-                    width: 40, 
-                    height: 4, 
-                    background: `linear-gradient(to right, ${theme.palette.success.light}, ${theme.palette.warning.light})`, 
-                    mr: 1 
-                  }}></Box>
-                  <Typography variant="caption">Optymalne</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', mx: 3 }}>
-                  <Box sx={{ 
-                    width: 40, 
-                    height: 4, 
-                    background: `linear-gradient(to right, ${theme.palette.warning.light}, ${theme.palette.error.light})`, 
-                    mr: 1 
-                  }}></Box>
-                  <Typography variant="caption">Podwyższone</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', ml: 3 }}>
-                  <Box sx={{ width: 40, height: 4, bgcolor: theme.palette.error.light, mr: 1 }}></Box>
-                  <Typography variant="caption">Wysokie</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
+            <InputLabel>Dział:</InputLabel>
+            <Select
+              value={selectedDepartment}
+              onChange={handleDepartmentChange}
+              label="Dział:"
+            >
+              <MenuItem value="Wszyscy nauczyciele">Wszyscy nauczyciele</MenuItem>
+              <MenuItem value="Matematyka i fizyka">Matematyka i fizyka</MenuItem>
+              <MenuItem value="Języki obce">Języki obce</MenuItem>
+              <MenuItem value="Przedmioty humanistyczne">Przedmioty humanistyczne</MenuItem>
+            </Select>
+          </FormControl>
         </Grid>
       </Grid>
-    </Box>
+      
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+        <SmartToyIcon color="primary" sx={{ mr: 1 }} />
+        <Typography variant="body2" color="primary">
+          AI: Pokazuję obszary wymagające równoważenia obciążeń
+        </Typography>
+      </Box>
+      
+      <StyledContentPaper>
+        <Typography variant="h6" gutterBottom>
+          Obciążenie nauczycieli (heatmapa)
+        </Typography>
+        
+        <Grid container spacing={1} sx={{ mb: 3 }}>
+          <Grid item xs={2}>
+            <Box sx={{ 
+              bgcolor: '#f5f5f5', 
+              p: 2, 
+              height: '100%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              fontWeight: 'bold',
+              borderRadius: '4px',
+            }}>
+              
+            </Box>
+          </Grid>
+          {['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek'].map((day) => (
+            <Grid item xs={2} key={day}>
+              <Box sx={{ 
+                bgcolor: '#3f51b5', 
+                color: 'white', 
+                p: 2, 
+                height: '100%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                borderRadius: '4px',
+              }}>
+                {day}
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+        
+        {['8:00-9:40', '9:50-11:30', '11:50-13:30', '13:40-15:20', '15:30-17:10'].map((timeSlot) => (
+          <Grid container spacing={1} sx={{ mb: 1 }} key={timeSlot}>
+            <Grid item xs={2}>
+              <Box sx={{ 
+                bgcolor: '#f5f5f5', 
+                p: 2, 
+                height: '100%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                borderRadius: '4px',
+              }}>
+                {timeSlot}
+              </Box>
+            </Grid>
+            {teacherLoadData.map((day) => (
+              <Grid item xs={2} key={day.day}>
+                {renderHeatmapCell(day[timeSlot])}
+              </Grid>
+            ))}
+          </Grid>
+        ))}
+        
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ width: 20, height: 20, bgcolor: '#4caf50', mr: 1, borderRadius: '4px' }}></Box>
+            <Typography variant="body2" sx={{ mr: 2 }}>Niskie obciążenie</Typography>
+            
+            <Box sx={{ width: 20, height: 20, bgcolor: '#ff9800', mr: 1, borderRadius: '4px' }}></Box>
+            <Typography variant="body2" sx={{ mr: 2 }}>Optymalne</Typography>
+            
+            <Box sx={{ width: 20, height: 20, bgcolor: '#f44336', mr: 1, borderRadius: '4px' }}></Box>
+            <Typography variant="body2">Krytyczne</Typography>
+          </Box>
+          
+          <Button variant="contained" color="primary">
+            Zoptymalizuj automatycznie
+          </Button>
+        </Box>
+      </StyledContentPaper>
+      
+      <Card sx={{ mb: 3, p: 2, bgcolor: '#e3f2fd', borderRadius: '4px' }}>
+        <Typography variant="h6" gutterBottom>
+          Obszary krytycznego obciążenia
+        </Typography>
+        
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" color="error" gutterBottom>
+            Środa 8:00-9:40
+          </Typography>
+          <Typography variant="body2" paragraph>
+            7 nauczycieli ma zajęcia, 2 klasy bez nauczyciela.
+            Sugestia: przesuń j.angielski kl.2C na wtorek.
+          </Typography>
+          
+          <Typography variant="subtitle1" color="error" gutterBottom>
+            Piątek 9:50-11:30
+          </Typography>
+          <Typography variant="body2" paragraph>
+            Zbyt dużo przedmiotów ścisłych dla klas 1A, 1B, 3C.
+            Sugestia: zamiana z WF w poniedziałek.
+          </Typography>
+          
+          <Typography variant="subtitle1" color="error" gutterBottom>
+            Poniedziałek 15:30-17:10
+          </Typography>
+          <Typography variant="body2">
+            Nauczyciele matematyki przeciążeni - 3 klasy równolegle.
+            Sugestia: rozłóż równomiernie na tydzień.
+          </Typography>
+        </Box>
+      </Card>
+      
+      <StyledContentPaper>
+        <Typography variant="h6" gutterBottom>
+          Obciążenie uczniów (trudność przedmiotów w ciągu dnia)
+        </Typography>
+        
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart
+            data={subjectDistributionData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="day" />
+            <YAxis />
+            <RechartsTooltip />
+            <Legend />
+            <Bar dataKey="1A" fill="#3f51b5" name="Klasa 1A" />
+            <Bar dataKey="2B" fill="#f44336" name="Klasa 2B" />
+            <Bar dataKey="3C" fill="#4caf50" name="Klasa 3C" />
+          </BarChart>
+        </ResponsiveContainer>
+        
+        <Box sx={{ mt: 3, display: 'flex', alignItems: 'center' }}>
+          <Typography variant="body2" sx={{ mr: 2 }}>Niskie</Typography>
+          <Box sx={{ 
+            width: 100, 
+            height: 10, 
+            background: 'linear-gradient(to right, #4caf50, #ffeb3b, #f44336)',
+            borderRadius: '5px',
+            mr: 2
+          }}></Box>
+          <Typography variant="body2" sx={{ mr: 2 }}>Wysokie</Typography>
+          <Typography variant="body2" color="textSecondary">Obciążenie poznawcze</Typography>
+        </Box>
+      </StyledContentPaper>
+    </StyledContainer>
   );
 };
 

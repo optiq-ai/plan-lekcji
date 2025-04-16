@@ -25,7 +25,6 @@ import WarningIcon from '@mui/icons-material/Warning';
 import InfoIcon from '@mui/icons-material/Info';
 import SchoolIcon from '@mui/icons-material/School';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
-import CloseIcon from '@mui/icons-material/Close';
 
 // Importy komponentów wizualizacji
 import LessonPlanGrid from '../components/visualization/LessonPlanGrid';

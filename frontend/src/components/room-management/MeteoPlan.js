@@ -1,309 +1,356 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
+  Container, 
   Typography, 
   Paper, 
-  Grid, 
-  Button, 
+  Grid,
+  Button,
   Card,
   CardContent,
   Chip,
+  Divider,
+  Switch,
+  FormControlLabel,
+  TextField,
   IconButton,
-  CircularProgress
+  Tooltip
 } from '@mui/material';
-import RoomService from '../../services/RoomService';
-import { useTheme } from '@mui/material/styles';
-import EventIcon from '@mui/icons-material/Event';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import { styled } from '@mui/material/styles';
 import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import CloudIcon from '@mui/icons-material/Cloud';
 import AcUnitIcon from '@mui/icons-material/AcUnit';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
+import InfoIcon from '@mui/icons-material/Info';
+import WarningIcon from '@mui/icons-material/Warning';
 
-/**
- * Komponent Meteo-plan łączący plan lekcji z prognozą pogody dla WF
- * Umożliwia planowanie zajęć WF z uwzględnieniem warunków pogodowych
- */
+// Stylizowany kontener
+const StyledContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(4),
+}));
+
+// Stylizowany Paper dla zawartości
+const StyledContentPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+  marginBottom: theme.spacing(3),
+}));
+
+// Stylizowany Chip dla dni
+const DayChip = styled(Chip)(({ theme, isactive, isrecommended }) => ({
+  margin: theme.spacing(0.5),
+  backgroundColor: isactive === 'true' ? '#3f51b5' : isrecommended === 'true' ? '#e3f2fd' : '#f5f5f5',
+  color: isactive === 'true' ? '#fff' : 'rgba(0, 0, 0, 0.87)',
+  fontWeight: isrecommended === 'true' ? 'bold' : 'normal',
+  border: isrecommended === 'true' ? '1px dashed #3f51b5' : 'none',
+  '&:hover': {
+    backgroundColor: isactive === 'true' ? '#303f9f' : '#e0e0e0',
+  },
+}));
+
+// Stylizowany Chip dla statusu
+const StatusChip = styled(Chip)(({ theme, status }) => {
+  let color = '#4caf50';
+  let bgcolor = '#e8f5e9';
+  
+  if (status === 'niezalecane') {
+    color = '#f44336';
+    bgcolor = '#ffebee';
+  } else if (status === 'ostrzezenie') {
+    color = '#ff9800';
+    bgcolor = '#fff3e0';
+  }
+  
+  return {
+    backgroundColor: bgcolor,
+    color: color,
+    fontWeight: 'bold',
+    '& .MuiChip-icon': {
+      color: color,
+    },
+  };
+});
+
+// Komponent MeteoPlan
 const MeteoPlan = () => {
-  const theme = useTheme();
-  const [weatherData, setWeatherData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-
-  // Przykładowe dane pogodowe
-  const sampleWeatherData = [
+  const [enableMeteo, setEnableMeteo] = useState(true);
+  const [selectedDate, setSelectedDate] = useState('12.04.2025');
+  
+  // Dane pogodowe
+  const weatherData = [
+    { date: '12.04.2025', wfStatus: 'zalecane', temp: '22°C', icon: <WbSunnyIcon />, conditions: 'Słonecznie' },
+    { date: '15.04.2025', wfStatus: 'niezalecane', temp: '12°C', icon: <CloudIcon />, conditions: 'Deszczowo' },
+    { date: '20.04.2025', wfStatus: 'zalecane', temp: '19°C', icon: <WbSunnyIcon />, conditions: 'Słonecznie' },
+  ];
+  
+  // Dane zajęć WF
+  const wfClasses = [
     { 
       date: '12.04.2025', 
-      wfOutdoor: 'ZALECANE', 
-      temperature: 22, 
-      conditions: 'sunny', 
-      icon: <WbSunnyIcon sx={{ color: theme.palette.warning.main }} />
-    },
-    { 
-      date: '13.04.2025', 
-      wfOutdoor: 'NIEZALECANE', 
-      temperature: 12, 
-      conditions: 'rainy', 
-      icon: <CloudIcon sx={{ color: theme.palette.grey[500] }} />
-    },
-    { 
-      date: '14.04.2025', 
-      wfOutdoor: 'NIEZALECANE', 
-      temperature: 10, 
-      conditions: 'windy', 
-      icon: <CloudIcon sx={{ color: theme.palette.grey[500] }} />
+      classes: [
+        { time: '8:00-8:45', class: '1A', teacher: 'mgr Kowalski', location: 'Boisko' },
+        { time: '8:55-9:40', class: '2B', teacher: 'mgr Nowak', location: 'Sala gimnastyczna' },
+        { time: '9:50-10:35', class: '3C', teacher: 'mgr Wiśniewski', location: 'Boisko' },
+      ],
+      recommendations: [
+        { type: 'info', text: 'Idealne warunki na zajęcia na zewnątrz' },
+        { type: 'info', text: 'Zalecane nawodnienie uczniów' },
+      ]
     },
     { 
       date: '15.04.2025', 
-      wfOutdoor: 'ZALECANE', 
-      temperature: 18, 
-      conditions: 'partly cloudy', 
-      icon: <WbSunnyIcon sx={{ color: theme.palette.warning.main }} />
+      classes: [
+        { time: '10:45-11:30', class: '1B', teacher: 'mgr Kowalski', location: 'Boisko' },
+        { time: '11:40-12:25', class: '2A', teacher: 'mgr Nowak', location: 'Boisko' },
+        { time: '12:35-13:20', class: '3B', teacher: 'mgr Wiśniewski', location: 'Boisko' },
+      ],
+      recommendations: [
+        { type: 'warning', text: 'Prognozowane opady - zalecane przeniesienie zajęć do sali gimnastycznej' },
+        { type: 'warning', text: 'Niska temperatura - uczniowie powinni mieć cieplejsze stroje' },
+      ]
     },
     { 
-      date: '16.04.2025', 
-      wfOutdoor: 'ZALECANE', 
-      temperature: 19, 
-      conditions: 'sunny', 
-      icon: <WbSunnyIcon sx={{ color: theme.palette.warning.main }} />
+      date: '20.04.2025', 
+      classes: [
+        { time: '8:00-8:45', class: '1C', teacher: 'mgr Kowalski', location: 'Boisko' },
+        { time: '8:55-9:40', class: '2C', teacher: 'mgr Nowak', location: 'Boisko' },
+        { time: '9:50-10:35', class: '3A', teacher: 'mgr Wiśniewski', location: 'Boisko' },
+      ],
+      recommendations: [
+        { type: 'info', text: 'Dobre warunki na zajęcia na zewnątrz' },
+        { type: 'info', text: 'Zalecane nawodnienie uczniów' },
+      ]
     },
-    { 
-      date: '17.04.2025', 
-      wfOutdoor: 'NIEZALECANE', 
-      temperature: 8, 
-      conditions: 'cold', 
-      icon: <AcUnitIcon sx={{ color: theme.palette.info.main }} />
-    },
-    { 
-      date: '18.04.2025', 
-      wfOutdoor: 'ZALECANE', 
-      temperature: 20, 
-      conditions: 'sunny', 
-      icon: <WbSunnyIcon sx={{ color: theme.palette.warning.main }} />
-    }
   ];
-
-  // Przykładowe dane zajęć WF
-  const wfLessons = [
-    { 
-      date: '12.04.2025', 
-      class: '1A', 
-      time: '10:45-11:30', 
-      teacher: 'mgr Adam Malinowski', 
-      location: 'boisko zewnętrzne',
-      alternativeLocation: 'sala gimnastyczna'
-    },
-    { 
-      date: '12.04.2025', 
-      class: '2B', 
-      time: '11:50-12:35', 
-      teacher: 'mgr Tomasz Kaczmarek', 
-      location: 'boisko zewnętrzne',
-      alternativeLocation: 'sala gimnastyczna'
-    },
-    { 
-      date: '13.04.2025', 
-      class: '3A', 
-      time: '8:55-9:40', 
-      teacher: 'mgr Adam Malinowski', 
-      location: 'boisko zewnętrzne',
-      alternativeLocation: 'sala gimnastyczna'
-    },
-    { 
-      date: '13.04.2025', 
-      class: '1C', 
-      time: '12:45-13:30', 
-      teacher: 'mgr Tomasz Kaczmarek', 
-      location: 'boisko zewnętrzne',
-      alternativeLocation: 'sala gimnastyczna'
-    }
-  ];
-
-  useEffect(() => {
-    // Symulacja pobierania danych pogodowych z API
-    const fetchWeatherData = async () => {
-      try {
-        setLoading(true);
-        // W rzeczywistej implementacji, tutaj byłoby wywołanie API pogodowego
-        // const response = await weatherService.getWeatherForecast();
-        // setWeatherData(response.data);
-        
-        // Używamy przykładowych danych
-        setTimeout(() => {
-          setWeatherData(sampleWeatherData);
-          setLoading(false);
-        }, 1000);
-      } catch (err) {
-        setError('Nie udało się pobrać danych pogodowych');
-        setLoading(false);
-        console.error('Error fetching weather data:', err);
-      }
-    };
-
-    fetchWeatherData();
-  }, []);
-
-  // Filtrowanie zajęć WF dla wybranej daty
-  const getWfLessonsForDate = (date) => {
-    return wfLessons.filter(lesson => lesson.date === date);
+  
+  // Znajdź dane pogodowe dla wybranej daty
+  const selectedWeather = weatherData.find(w => w.date === selectedDate) || weatherData[0];
+  
+  // Znajdź dane zajęć dla wybranej daty
+  const selectedClasses = wfClasses.find(c => c.date === selectedDate) || wfClasses[0];
+  
+  // Obsługa zmiany daty
+  const handleDateChange = (date) => {
+    setSelectedDate(date);
   };
-
-  // Renderowanie karty z prognozą pogody
-  const renderWeatherCard = (weatherItem) => {
-    const isRecommended = weatherItem.wfOutdoor === 'ZALECANE';
-    
-    return (
-      <Card 
-        sx={{ 
-          mb: 2, 
-          border: 1, 
-          borderColor: isRecommended ? theme.palette.success.main : theme.palette.error.main,
-          boxShadow: 3
-        }}
-      >
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={2}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '2rem' }}>
-                {weatherItem.icon}
-              </Box>
-            </Grid>
-            <Grid item xs={3}>
-              <Typography variant="h6">{weatherItem.date}</Typography>
-              <Typography variant="body2">{weatherItem.temperature}°C</Typography>
-            </Grid>
-            <Grid item xs={4}>
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
-                  color: isRecommended ? theme.palette.success.main : theme.palette.error.main,
-                  fontWeight: 'bold'
-                }}
-              >
-                {weatherItem.wfOutdoor}
-              </Typography>
-              <Typography variant="body2">
-                {isRecommended ? 'Dobre warunki na WF na zewnątrz' : 'Zalecane zajęcia w sali gimnastycznej'}
-              </Typography>
-            </Grid>
-            <Grid item xs={3}>
-              <Button 
-                variant="contained" 
-                color={isRecommended ? "success" : "primary"}
-                fullWidth
-                onClick={() => setSelectedDate(weatherItem.date)}
-              >
-                Pokaż zajęcia
-              </Button>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-    );
+  
+  // Obsługa włączania/wyłączania funkcji Meteo-Plan
+  const handleMeteoToggle = () => {
+    setEnableMeteo(!enableMeteo);
   };
-
-  // Renderowanie listy zajęć WF
-  const renderWfLessons = () => {
-    const lessons = getWfLessonsForDate(selectedDate);
-    const weatherForSelectedDate = weatherData.find(w => w.date === selectedDate);
-    const isOutdoorRecommended = weatherForSelectedDate && weatherForSelectedDate.wfOutdoor === 'ZALECANE';
-    
-    if (lessons.length === 0) {
-      return (
-        <Box sx={{ mt: 2, p: 2, bgcolor: theme.palette.background.paper, borderRadius: 1 }}>
-          <Typography variant="subtitle1">Brak zajęć WF w wybranym dniu</Typography>
-        </Box>
-      );
-    }
-
-    return (
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Zajęcia WF - {selectedDate}
+  
+  return (
+    <StyledContainer maxWidth="lg">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Meteo-Plan (Lekcje i pogoda)
         </Typography>
-        
-        {lessons.map((lesson, index) => (
-          <Card key={index} sx={{ mb: 2, boxShadow: 2 }}>
-            <CardContent>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={3}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <AccessTimeIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-                    <Typography variant="subtitle1">{lesson.time}</Typography>
-                  </Box>
-                  <Typography variant="body2">Klasa {lesson.class}</Typography>
-                </Grid>
-                <Grid item xs={4}>
-                  <Typography variant="subtitle1">{lesson.teacher}</Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                    <MeetingRoomIcon sx={{ mr: 1, fontSize: '0.9rem', color: theme.palette.secondary.main }} />
-                    <Typography variant="body2" sx={{ textDecoration: !isOutdoorRecommended && 'line-through' }}>
-                      {lesson.location}
+        <FormControlLabel
+          control={<Switch checked={enableMeteo} onChange={handleMeteoToggle} color="primary" />}
+          label="Włącz rekomendacje pogodowe"
+        />
+      </Box>
+      
+      <StyledContentPaper>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <Typography variant="h6" gutterBottom>
+              Wybierz datę
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', mb: 2 }}>
+              {weatherData.map((weather) => (
+                <DayChip
+                  key={weather.date}
+                  label={weather.date}
+                  icon={weather.icon}
+                  onClick={() => handleDateChange(weather.date)}
+                  isactive={selectedDate === weather.date ? 'true' : 'false'}
+                  isrecommended={weather.wfStatus === 'zalecane' ? 'true' : 'false'}
+                />
+              ))}
+            </Box>
+            
+            <TextField
+              label="Szukaj daty"
+              type="date"
+              variant="outlined"
+              size="small"
+              fullWidth
+              InputLabelProps={{
+                shrink: true,
+              }}
+              sx={{ mt: 2 }}
+            />
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+              Prognoza pogody
+            </Typography>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box>
+                    <Typography variant="h5" gutterBottom>
+                      {selectedWeather.date}
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedWeather.conditions}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Temperatura: {selectedWeather.temp}
                     </Typography>
                   </Box>
-                </Grid>
-                <Grid item xs={5}>
-                  {!isOutdoorRecommended && (
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                      <Chip 
-                        label="Zalecana zmiana lokalizacji" 
-                        color="warning" 
-                        size="small" 
-                        sx={{ mb: 1 }} 
-                      />
-                      <Typography variant="body2">
-                        Zalecane miejsce: <strong>{lesson.alternativeLocation}</strong>
-                      </Typography>
-                    </Box>
-                  )}
-                  {isOutdoorRecommended && (
-                    <Chip 
-                      label="Dobre warunki na zajęcia zewnętrzne" 
-                      color="success" 
-                      size="small" 
-                    />
-                  )}
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
-    );
-  };
-
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h5" sx={{ mb: 1 }}>
-        Meteo-plan (Lekcje i pogoda)
-      </Typography>
-      <Typography variant="subtitle2" sx={{ mb: 3 }}>
-        System planowania zajęć WF z uwzględnieniem warunków pogodowych
-      </Typography>
-
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : error ? (
-        <Typography color="error">{error}</Typography>
-      ) : (
-        <Box>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Prognoza pogody na najbliższy tydzień
-          </Typography>
+                  <Box sx={{ fontSize: '3rem' }}>
+                    {selectedWeather.icon}
+                  </Box>
+                </Box>
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                  <StatusChip
+                    label={selectedWeather.wfStatus === 'zalecane' ? 'ZALECANE' : 'NIEZALECANE'}
+                    status={selectedWeather.wfStatus}
+                    icon={selectedWeather.wfStatus === 'zalecane' ? <EventAvailableIcon /> : <EventBusyIcon />}
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
           
-          {weatherData.map((item, index) => (
-            <Box key={index}>
-              {renderWeatherCard(item)}
+          <Grid item xs={12} md={8}>
+            <Typography variant="h6" gutterBottom>
+              Zajęcia WF w dniu {selectedDate}
+            </Typography>
+            <Box sx={{ mb: 3 }}>
+              {selectedClasses.classes.map((cls, index) => (
+                <Card key={index} sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Grid container spacing={2}>
+                      <Grid item xs={3}>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Godzina
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {cls.time}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Klasa
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {cls.class}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Nauczyciel
+                        </Typography>
+                        <Typography variant="body1">
+                          {cls.teacher}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Lokalizacja
+                        </Typography>
+                        <Typography variant="body1">
+                          {cls.location}
+                        </Typography>
+                        {enableMeteo && selectedWeather.wfStatus === 'niezalecane' && cls.location === 'Boisko' && (
+                          <Chip 
+                            label="Zmień na salę" 
+                            size="small" 
+                            color="error" 
+                            sx={{ mt: 1 }}
+                          />
+                        )}
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              ))}
             </Box>
-          ))}
-          
-          {renderWfLessons()}
-        </Box>
-      )}
-    </Box>
+            
+            {enableMeteo && (
+              <Box>
+                <Typography variant="h6" gutterBottom>
+                  Rekomendacje AI
+                </Typography>
+                <Card sx={{ bgcolor: 'rgba(63, 81, 181, 0.05)' }}>
+                  <CardContent>
+                    {selectedClasses.recommendations.map((rec, index) => (
+                      <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                        {rec.type === 'warning' ? (
+                          <WarningIcon color="warning" sx={{ mr: 1, mt: 0.5 }} />
+                        ) : (
+                          <InfoIcon color="info" sx={{ mr: 1, mt: 0.5 }} />
+                        )}
+                        <Typography variant="body1">
+                          {rec.text}
+                        </Typography>
+                      </Box>
+                    ))}
+                    
+                    {selectedWeather.wfStatus === 'niezalecane' && (
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+                        <Button variant="contained" color="primary">
+                          Przenieś wszystkie zajęcia do sali
+                        </Button>
+                        <Button variant="outlined">
+                          Powiadom nauczycieli
+                        </Button>
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              </Box>
+            )}
+            
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Długoterminowa prognoza
+              </Typography>
+              <Grid container spacing={2}>
+                {weatherData.map((weather) => (
+                  <Grid item xs={4} key={weather.date}>
+                    <Card>
+                      <CardContent sx={{ textAlign: 'center' }}>
+                        <Typography variant="subtitle1">
+                          {weather.date}
+                        </Typography>
+                        <Box sx={{ fontSize: '2rem', my: 1 }}>
+                          {weather.icon}
+                        </Box>
+                        <Typography variant="body2">
+                          {weather.temp}
+                        </Typography>
+                        <StatusChip
+                          label={weather.wfStatus === 'zalecane' ? 'ZALECANE' : 'NIEZALECANE'}
+                          status={weather.wfStatus}
+                          size="small"
+                          sx={{ mt: 1 }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          </Grid>
+        </Grid>
+      </StyledContentPaper>
+      
+      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Button variant="outlined" startIcon={<InfoIcon />}>
+          Ustawienia Meteo-Plan
+        </Button>
+        <Button variant="contained" color="primary">
+          Zastosuj rekomendacje
+        </Button>
+      </Box>
+    </StyledContainer>
   );
 };
 
