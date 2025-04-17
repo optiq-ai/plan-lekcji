@@ -17,23 +17,6 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Obsługa błędów autoryzacji
-    if (error.response && error.response.status === 401) {
-      // Przekierowanie do strony logowania lub odświeżenie tokenu
-      console.error('Błąd autoryzacji:', error);
-    }
-    
-    // Obsługa błędów dostępu (403)
-    if (error.response && error.response.status === 403) {
-      console.error('Błąd dostępu (403):', error);
-      // Możemy tutaj dodać specyficzną obsługę dla błędów 403
-      return Promise.reject({
-        ...error,
-        isAccessError: true,
-        userMessage: 'Brak dostępu do zasobu. Sprawdź swoje uprawnienia lub skontaktuj się z administratorem.'
-      });
-    }
-    
     // Obsługa błędów serwera (500)
     if (error.response && error.response.status >= 500) {
       console.error('Błąd serwera:', error);

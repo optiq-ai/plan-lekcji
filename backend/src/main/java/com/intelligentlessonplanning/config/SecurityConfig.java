@@ -26,9 +26,7 @@ public class SecurityConfig {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeHttpRequests()
-                .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
-                .anyRequest().authenticated();
+                .requestMatchers("/**").permitAll(); // Zezwalamy na dostęp do wszystkich endpointów bez uwierzytelniania
         
         return http.build();
     }
